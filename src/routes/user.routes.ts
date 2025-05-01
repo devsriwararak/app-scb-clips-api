@@ -6,6 +6,7 @@ import { isAdmin } from "../middlewares/admin.middleware";
 
 const router = Router()
 // router.get('/', authenticateToken, isAdmin, asyncHandler(userController.getUsers))
-router.get('/', authenticateToken, isAdmin, asyncHandler(userController.getUsers))
+router.get('/', asyncHandler(userController.getUsers))
+
 
 export default router
