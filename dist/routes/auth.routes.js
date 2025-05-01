@@ -9,4 +9,6 @@ const auth_controller_1 = require("../controllers/auth.controller");
 const router = express_1.default.Router();
 router.post("/register", (0, asyncHandler_1.asyncHandler)(auth_controller_1.registerTest));
 router.post("/login", (0, asyncHandler_1.asyncHandler)(auth_controller_1.login));
+router.post("/logout", (0, asyncHandler_1.asyncHandler)(auth_controller_1.logout));
+router.post("/refresh-token", (0, asyncHandler_1.asyncHandler)(auth_controller_1.refreshTokene));
 exports.default = router;

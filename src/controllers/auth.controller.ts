@@ -68,9 +68,9 @@ export const login = async (req: Request, res: Response) => {
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production' && req.hostname !== 'localhost' ? true : false,
-            sameSite: 'lax',   
+            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000,
-          });
+        });
 
         return res.json({
             id: user.id,
@@ -88,8 +88,7 @@ export const login = async (req: Request, res: Response) => {
 
 export const refreshTokene = async (req: Request, res: Response) => {
     const token = req.cookies.refreshToken
-    console.log('555555555555');
-    
+
     if (!token) return res.status(401).json({ message: "ไม่พบ refresh token" });
 
     const storedToken = await prisma.refreshToken.findUnique({ where: { token } })
@@ -117,7 +116,7 @@ export const refreshTokene = async (req: Request, res: Response) => {
         res.cookie('refreshToken', newRefreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production' && req.hostname !== 'localhost' ? true : false,
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000,
         })
 
@@ -127,7 +126,7 @@ export const refreshTokene = async (req: Request, res: Response) => {
         res.clearCookie('refreshToken', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production' && req.hostname !== 'localhost' ? true : false,
-            sameSite: 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
         });
         return res.status(403).json({ message: "Refresh token หมดอายุ หรือไม่ถูกต้อง" });
     }
@@ -148,7 +147,7 @@ export const logout = async (req: Request, res: Response) => {
         // clear cookie
         res.clearCookie('refreshToken', {
             httpOnly: true,
-             secure: process.env.NODE_ENV === 'production' && req.hostname !== 'localhost' ? true : false,
+            secure: process.env.NODE_ENV === 'production' && req.hostname !== 'localhost' ? true : false,
             sameSite: 'strict',
         })
         return res.status(200).json({ message: "Logout success" });
