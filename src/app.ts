@@ -7,12 +7,18 @@ import cookieParser from 'cookie-parser';
 // Component
 import userRoutes from "./routes/user.routes"
 import authRoutes from "./routes/auth.routes"
+import companyRoutes from "./routes/company.routes"
+import locationRoutes from './routes/location.routes'
+import lecturerRoutes from './routes/lecturer.routes'
+import vdoRoutes from './routes/vdo.routes'
+import questionRoutes from './routes/question.routes'
+import questionEndRoutes from './routes/questionEnd.routes'
 
 dotenv.config()
 const app = express()
 
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true
 }))
 app.use(express.json())
@@ -22,6 +28,12 @@ app.use(cookieParser());
 
 app.use('/api/users', userRoutes)
 app.use('/api/auth', authRoutes)
+app.use('/api/company', companyRoutes)
+app.use('/api/location', locationRoutes)
+app.use('/api/lecturer', lecturerRoutes)
+app.use('/api/vdo', vdoRoutes)
+app.use('/api/question', questionRoutes)
+app.use('/api/questionEnd', questionEndRoutes)
 
 // Middleware จัดการ Error
 app.use(errorHandler)

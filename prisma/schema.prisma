@@ -30,6 +30,68 @@ model RefreshToken {
   expiresAt DateTime
 }
 
+// model Member {
+//   id Int @id @default(autoincrement())
+//   titleName String
+//   fname String
+//   lname String
+//   idCard  Int
+//   phone Int
+
+
+//   createdAt DateTime @default(now())
+// }
+
+model Company {
+  id Int @id @default(autoincrement())
+  name String @unique
+  createdAT DateTime @default(now())
+}
+
+model Location {
+  id Int @id @default(autoincrement())
+  name String @unique
+  createdAT DateTime @default(now())
+}
+
+model Lecturer {
+  id Int @id @default(autoincrement())
+  name String @unique
+  createdAT DateTime @default(now())
+}
+
+model Video {
+  id Int @id @default(autoincrement())
+  name  String @unique
+  detail String?
+  filePath  String
+  timeAdvert Int @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Question {
+  id Int @id @default(autoincrement())
+  name String @unique
+  createdAT DateTime @default(now())
+}
+
+model QuestionEnd {
+  id Int @id @default(autoincrement())
+  name String @unique
+  createdAT DateTime @default(now())
+  questionEndList QuestionEndList[]
+}
+
+model QuestionEndList {
+  id Int @id @default(autoincrement())
+  question String @unique
+  status Int @default(0)
+  questionEndId Int
+  questionEnd QuestionEnd @relation(fields: [questionEndId], references: [id])
+  createdAT DateTime @default(now())
+}
+
+
 enum Role {
   USER 
   ADMIN
