@@ -30,33 +30,26 @@ model RefreshToken {
   expiresAt DateTime
 }
 
-// model Member {
-//   id Int @id @default(autoincrement())
-//   titleName String
-//   fname String
-//   lname String
-//   idCard  Int
-//   phone Int
 
-
-//   createdAt DateTime @default(now())
-// }
 
 model Company {
   id Int @id @default(autoincrement())
   name String @unique
+  member Member[]
   createdAT DateTime @default(now())
 }
 
 model Location {
   id Int @id @default(autoincrement())
   name String @unique
+  member Member[]
   createdAT DateTime @default(now())
 }
 
 model Lecturer {
   id Int @id @default(autoincrement())
   name String @unique
+  member Member[]
   createdAT DateTime @default(now())
 }
 
@@ -89,6 +82,24 @@ model QuestionEndList {
   questionEndId Int
   questionEnd QuestionEnd @relation(fields: [questionEndId], references: [id])
   createdAT DateTime @default(now())
+}
+
+model Member {
+  id Int @id @default(autoincrement())
+  titleName String
+  fname String
+  lname String
+  idCard  Int
+  phone Int
+  companyId Int
+  company Company @relation(fields: [companyId],references: [id])
+  locationId Int
+  location Location @relation(fields: [locationId], references: [id])
+  lecturerId Int
+  lecturer Lecturer @relation(fields: [lecturerId], references: [id])
+  createdAt DateTime @default(now())
+  dateOfTraining DateTime
+  dateEndCertificate DateTime
 }
 
 
