@@ -13,6 +13,7 @@ import lecturerRoutes from './routes/lecturer.routes'
 import vdoRoutes from './routes/vdo.routes'
 import questionRoutes from './routes/question.routes'
 import questionEndRoutes from './routes/questionEnd.routes'
+import memberRoutes from './routes/member.routes'
 
 dotenv.config()
 const app = express()
@@ -34,6 +35,7 @@ app.use('/api/lecturer', lecturerRoutes)
 app.use('/api/vdo', vdoRoutes)
 app.use('/api/question', questionRoutes)
 app.use('/api/questionEnd', questionEndRoutes)
+app.use('/api/member', memberRoutes)
 
 // Middleware จัดการ Error
 app.use(errorHandler)

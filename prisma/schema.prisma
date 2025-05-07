@@ -89,8 +89,8 @@ model Member {
   titleName String
   fname String
   lname String
-  idCard  Int
-  phone Int
+  idCard  String
+  phone String
   companyId Int
   company Company @relation(fields: [companyId],references: [id])
   locationId Int
