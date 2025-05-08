@@ -62,7 +62,7 @@ export const getMembers = async (req: Request, res: Response) => {
 export const createMember = async (req: Request, res: Response) => {
     try {
 
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId } = req.body
+        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining } = req.body
 
         console.log(req.body);
 
@@ -88,7 +88,7 @@ export const createMember = async (req: Request, res: Response) => {
                 companyId: Number(companyId),
                 locationId: Number(locationId),
                 lecturerId: Number(lecturerId),
-                dateOfTraining: new Date(),
+                dateOfTraining
             }
         })
         res.status(201).json({ result, message: "ทำรายการสำเร็จ" })
@@ -103,7 +103,7 @@ export const createMember = async (req: Request, res: Response) => {
 export const updateMember = async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id)
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId } = req.body
+        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId , dateOfTraining} = req.body
 
         if (!id || !idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
@@ -133,8 +133,7 @@ export const updateMember = async (req: Request, res: Response) => {
                 companyId: Number(companyId),
                 locationId: Number(locationId),
                 lecturerId: Number(lecturerId),
-                dateOfTraining: new Date(),
-                dateEndCertificate: new Date(),
+                dateOfTraining
             }
         })
         return res.status(201).json({ result, message: "ทำรายการสำเร็จ" })
