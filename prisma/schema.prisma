@@ -99,7 +99,7 @@ model Member {
   lecturer Lecturer @relation(fields: [lecturerId], references: [id])
   createdAt DateTime @default(now())
   dateOfTraining DateTime
-  dateEndCertificate DateTime
+  dateEndCertificate DateTime?
 }
 
 
