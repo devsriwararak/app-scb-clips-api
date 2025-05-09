@@ -103,7 +103,7 @@ export const createMember = async (req: Request, res: Response) => {
 export const updateMember = async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id)
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId , dateOfTraining} = req.body
+        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining } = req.body
 
         if (!id || !idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
@@ -145,15 +145,36 @@ export const updateMember = async (req: Request, res: Response) => {
 
 
 // Delete
-export const deleteMember = async(req:Request, res : Response)=> {
+export const deleteMember = async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id)
-        if(!id ) return res.status(400).json({message : "ส่งข้อมูลไม่ครบ"})
+        if (!id) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
-            await prisma.member.delete({where: {id}})
-            return res.status(200).json({message : "ทำรายการสำเร็จ"})
+        await prisma.member.delete({ where: { id } })
+        return res.status(200).json({ message: "ทำรายการสำเร็จ" })
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: "Internal Server Error", error }); 
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+}
+
+// Check Id Card
+
+export const checkIdCard = async (req: Request, res: Response) => {
+    try {
+        const { idCard } = req.body
+        if (!idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
+
+            const result = await prisma.member.findFirst({
+                where: {idCard}
+            })
+
+            if(!result?.idCard) return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" })
+
+            return res.status(200).json(result?.idCard)
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
     }
 }

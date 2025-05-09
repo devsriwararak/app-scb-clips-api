@@ -1,0 +1,176 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.deleteVideo = exports.updateVideo = exports.uploadVideo = exports.getAllVideos = void 0;
+const db_1 = __importDefault(require("../config/db"));
+const fs_1 = __importDefault(require("fs"));
+const ftpClient_1 = require("../config/ftpClient");
+const tools_1 = require("../utils/tools");
+const getAllVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const search = req.query.search || "";
+        const where = search
+            ? {
+                name: {
+                    contains: search,
+                    mode: 'insensitive',
+                },
+            }
+            : {};
+        const [data, totalItems] = yield Promise.all([
+            db_1.default.video.findMany({
+                where,
+                skip: (page - 1) * limit,
+                take: limit,
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            }),
+            db_1.default.video.count({ where })
+        ]);
+        const result = {
+            data,
+            pagination: {
+                page,
+                totalPage: Math.ceil(totalItems / limit),
+                totalItems
+            }
+        };
+        return res.status(200).json(result);
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+exports.getAllVideos = getAllVideos;
+const uploadVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const file = req.file;
+        const { detail, name, timeAdvert } = req.body;
+        console.log(req.body);
+        // ทำไมเข้าเงื่อนไขนี้ แต่รูปยังถูกส่งไป FTP อยู่เลย
+        if (!file || !(name === null || name === void 0 ? void 0 : name.trim())) {
+            if (file)
+                fs_1.default.unlinkSync(file.path);
+            return res.status(400).json({ error: "No file uploaded or name missing" });
+        }
+        //Check ซ้ำ
+        const checkSql = yield db_1.default.video.findFirst({
+            where: {
+                name: {
+                    equals: name,
+                    mode: "insensitive"
+                }
+            }
+        });
+        if (checkSql)
+            return res.status(400).json({ message: "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่" });
+        const filePath = file.path;
+        const originalName = file.originalname;
+        const safeName = (0, tools_1.sanitizeFilename)(originalName);
+        const remotePath = `/videos/${Date.now()}_${safeName}`;
+        const client = yield (0, ftpClient_1.createFtpClient)();
+        yield client.uploadFrom(filePath, remotePath);
+        yield client.close();
+        fs_1.default.unlinkSync(filePath);
+        try {
+            const video = yield db_1.default.video.create({
+                data: {
+                    name: name,
+                    filePath: remotePath,
+                    detail: detail || "",
+                    timeAdvert: Number(timeAdvert) || 0
+                },
+            });
+            return res.json({ success: true, video });
+        }
+        catch (dbError) {
+            const rollbackClient = yield (0, ftpClient_1.createFtpClient)();
+            yield rollbackClient.remove(remotePath);
+            yield rollbackClient.close();
+            return res.status(409).json({ error: "Video name already exists or DB error." });
+        }
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: "Upload failed" });
+    }
+});
+exports.uploadVideo = uploadVideo;
+const updateVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { name, detail, timeAdvert } = req.body;
+        const file = req.file;
+        const existing = yield db_1.default.video.findUnique({ where: { id: Number(id) } });
+        if (!existing)
+            return res.status(404).json({ error: "Video not found" });
+        let newFilePath = existing.filePath;
+        if (file) {
+            const filePath = file.path;
+            const originalName = file.originalname;
+            newFilePath = `/videos/${Date.now()}_${originalName}`;
+            const client = yield (0, ftpClient_1.createFtpClient)();
+            // ลบไฟล์เก่าออกจาก FTP
+            yield client.remove(existing.filePath);
+            // อัปโหลดไฟล์ใหม่
+            yield client.uploadFrom(filePath, newFilePath);
+            yield client.close();
+            fs_1.default.unlinkSync(filePath); // ลบ tmp
+        }
+        const updated = yield db_1.default.video.update({
+            where: { id: Number(id) },
+            data: {
+                name: name === null || name === void 0 ? void 0 : name.trim(),
+                detail: detail || "",
+                filePath: newFilePath,
+                timeAdvert: Number(timeAdvert) || 0
+            },
+        });
+        return res.status(200).json({ success: true, video: updated });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: "Failed to update video" });
+    }
+});
+exports.updateVideo = updateVideo;
+const deleteVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    try {
+        const video = yield db_1.default.video.findUnique({ where: { id: Number(id) } });
+        if (!video)
+            return res.status(404).json({ error: "ไม่พบวีดีโอ ไม่สามารถลบได้" });
+        // ลบไฟล์จาก FTP
+        try {
+            const client = yield (0, ftpClient_1.createFtpClient)();
+            yield client.remove(video.filePath);
+            yield client.close();
+        }
+        catch (ftpError) {
+            console.warn(" ไม่สามารถลบไฟล์ FTP (อาจไม่มีอยู่):", ftpError);
+        }
+        // ลบข้อมูลจาก DB
+        yield db_1.default.video.delete({ where: { id: Number(id) } });
+        return res.status(200).json({ success: true, message: "Video deleted" });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: "Failed to update video" });
+    }
+});
+exports.deleteVideo = deleteVideo;
