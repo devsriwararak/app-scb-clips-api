@@ -2,9 +2,11 @@ import { Request, Response } from "express";
 import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
 import fs from "fs";
-import path from "path";
 import { createFtpClient } from "../config/ftpClient";
-import { sanitizeFilename } from "../utils/tools";
+import { generateSecureToken, generateToken, sanitizeFilename } from "../utils/tools";
+import path from "path";
+import { promises as fsPromises } from 'fs'
+
 
 
 export const getAllVideos = async (req: Request, res: Response) => {
@@ -56,7 +58,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
         const { detail, name, timeAdvert } = req.body
 
         console.log(req.body);
-        
+
 
         // ทำไมเข้าเงื่อนไขนี้ แต่รูปยังถูกส่งไป FTP อยู่เลย
         if (!file || !name?.trim()) {
@@ -94,7 +96,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
                     name: name,
                     filePath: remotePath,
                     detail: detail || "",
-                    timeAdvert : Number(timeAdvert) || 0
+                    timeAdvert: Number(timeAdvert) || 0
                 },
             });
             return res.json({ success: true, video });
@@ -144,8 +146,8 @@ export const updateVideo = async (req: Request, res: Response) => {
             data: {
                 name: name?.trim(),
                 detail: detail || "",
-                filePath: newFilePath , 
-                timeAdvert : Number(timeAdvert) || 0
+                filePath: newFilePath,
+                timeAdvert: Number(timeAdvert) || 0
             },
         });
 
@@ -185,3 +187,97 @@ export const deleteVideo = async (req: Request, res: Response) => {
         return res.status(500).json({ error: "Failed to update video" });
     }
 }
+
+// Check Id card
+export const getSecureVideos = async (req: Request, res: Response) => {
+    try {
+        const idCard = req.body.idCard as string;
+        if (!idCard || idCard.length !== 13) {
+            return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" })
+        }
+        // Check idCard
+        const checkIdCard = await prisma.member.findFirst({ where: { idCard } })
+        if (!checkIdCard) return res.status(403).json({ message: "ไม่มีสิทธิ์เข้าถึงวิดีโอ !!" })
+
+        // load video
+        const videos = await prisma.video.findMany({
+            orderBy: { createdAt: "desc" }
+        })
+
+        const result = await Promise.all(
+            videos.map(async (video) => {
+                const token = await generateSecureToken(idCard, video.filePath)
+                return {
+                    name: video.name,
+                    filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${idCard}`,
+                    detail: video.detail,
+                    timeAdvert: video.timeAdvert
+                }
+            })
+        )
+
+        return res.status(200).json({ data: result })
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(error);
+    }
+}
+
+// Stream video
+export const streamVideo = async (req: Request, res: Response) => {
+    const client = await createFtpClient()
+
+    try {
+        const { file, token, idCard } = req.query as Record<string, string>
+
+        if (!file || !token || !idCard) {
+            return res.status(400).send('ข้อมูลไม่ครบ')
+        }
+
+        const tokenRecord = await prisma.videoToken.findUnique({ where: { token } })
+        if (!tokenRecord)
+            return res.status(403).send("ไม่พบ token")
+
+        if (tokenRecord.used)
+            return res.status(403).send("token นี้ถูกใช้งานไปแล้ว")
+
+        if (tokenRecord.idCard !== idCard)
+            return res.status(403).send("idCard ไม่ตรง")
+
+        if (new Date() > tokenRecord.expiresAt)
+            return res.status(403).send("token หมดอายุ")
+
+        res.setHeader("Content-Type", "video/mp4")
+        await client.downloadTo(res, file)
+
+        // อัปเดต token ว่าใช้แล้ว
+        await prisma.videoToken.update({
+            where: { token },
+            data: { used: true },
+        })
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(error);
+
+    } finally {
+        client.close()
+
+    }
+}
+
+export const EndStreamVideo = async (req: Request, res: Response) => {
+    try {
+        const { idCard } = req.body
+        console.log({ idCard });
+        await prisma.member.update({ data: { statusVideoEnd: 1 }, where: { idCard } })
+
+        return res.status(200).json({ message: 'success' })
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(error);
+    }
+}
+

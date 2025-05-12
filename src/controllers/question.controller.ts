@@ -49,10 +49,8 @@ export const getQuestions = async (req: Request, res: Response) => {
 // Create
 export const createQuestion = async(req:Request, res:Response)=> {
     try {
-        const {name} =  req.body
-        console.log(name);
+        const {name, answer} =  req.body
         
-
         // Check ซ้ำ
         const resultCheck = await prisma.question.findFirst({
             where: {name : {
@@ -63,7 +61,7 @@ export const createQuestion = async(req:Request, res:Response)=> {
 
         if(resultCheck) return res.status(400).json({message : "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่"})
      
-        const result = await prisma.question.create({data: {name}})
+        const result = await prisma.question.create({data: {name, answer}})
         res.status(201).json({result, message : "ทำรายการสำเร็จ"})
 
     } catch (error) {
@@ -76,7 +74,7 @@ export const createQuestion = async(req:Request, res:Response)=> {
 export const updateQuestion = async(req: Request, res:Response) => {
     try {
         const id = parseInt(req.params.id)
-        const {name} = req.body
+        const {name, answer} = req.body
 
         if(!id || !name) return res.status(400).json({message : "ส่งข้อมูลไม่ครบ"})
 
@@ -97,7 +95,7 @@ export const updateQuestion = async(req: Request, res:Response) => {
 
             const result = await prisma.question.update({
                 where: {id},
-                data : {name}
+                data : {name, answer}
             })
             return res.status(201).json({result, message : "ทำรายการสำเร็จ"})
     } catch (error) {

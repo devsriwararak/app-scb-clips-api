@@ -65,6 +65,7 @@ model Video {
 model Question {
   id Int @id @default(autoincrement())
   name String @unique
+  answer String @default("YES")
   createdAT DateTime @default(now())
 }
 
@@ -89,7 +90,7 @@ model Member {
   titleName String
   fname String
   lname String
-  idCard  String
+  idCard  String @unique
   phone String
   companyId Int
   company Company @relation(fields: [companyId],references: [id])
@@ -98,10 +99,24 @@ model Member {
   lecturerId Int
   lecturer Lecturer @relation(fields: [lecturerId], references: [id])
   createdAt DateTime @default(now())
+  statusVideoEnd Int @default(0)
+  statusQuestionEnd Int @default(0)
   dateOfTraining DateTime
   dateEndCertificate DateTime?
 }
 
+model VideoToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  filePath  String
+  idCard    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([used])
+}
 
 enum Role {
   USER 
