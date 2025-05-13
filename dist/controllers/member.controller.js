@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
 const db_1 = __importDefault(require("../config/db"));
+const report_controller_1 = require("./report.controller");
 const getMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -103,7 +104,7 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining } = req.body;
         if (!id || !idCard)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
-        // Check
+        // Check รหัสบัตรประชาชนซ้ำ
         const existing = yield db_1.default.member.findFirst({
             where: {
                 idCard: {
@@ -117,19 +118,29 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         });
         if (existing)
             return res.status(400).json({ message: "มีข้อมูลนี้แล้ว" });
+        // ถ้ามีการแก้ไขบริษัท ถึงจะทำงาน
+        const oldMember = yield db_1.default.member.findUnique({ where: { id } });
+        if (!oldMember)
+            return res.status(404).json({ message: "ไม่พบข้อมูลสมาชิก" });
+        if (companyId !== oldMember.companyId) {
+            // หา company name
+            const companyName = yield db_1.default.company.findUnique({ where: { id: Number(companyId) } });
+            yield (0, report_controller_1.createMemberChangeCompany)({ id, oldCompanyId: oldMember.companyId, newCompany: companyName === null || companyName === void 0 ? void 0 : companyName.name });
+        }
+        const data = {
+            titleName,
+            fname,
+            lname,
+            idCard,
+            phone,
+            companyId: Number(companyId),
+            locationId: Number(locationId),
+            lecturerId: Number(lecturerId),
+            dateOfTraining
+        };
         const result = yield db_1.default.member.update({
             where: { id },
-            data: {
-                titleName,
-                fname,
-                lname,
-                idCard,
-                phone,
-                companyId: Number(companyId),
-                locationId: Number(locationId),
-                lecturerId: Number(lecturerId),
-                dateOfTraining
-            }
+            data
         });
         return res.status(201).json({ result, message: "ทำรายการสำเร็จ" });
     }
@@ -173,3 +184,4 @@ const checkIdCard = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.checkIdCard = checkIdCard;
+// member Change Company Report

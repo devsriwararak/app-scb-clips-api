@@ -58,8 +58,7 @@ exports.getQuestions = getQuestions;
 // Create
 const createQuestion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { name } = req.body;
-        console.log(name);
+        const { name, answer } = req.body;
         // Check ซ้ำ
         const resultCheck = yield db_1.default.question.findFirst({
             where: { name: {
@@ -69,7 +68,7 @@ const createQuestion = (req, res) => __awaiter(void 0, void 0, void 0, function*
         });
         if (resultCheck)
             return res.status(400).json({ message: "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่" });
-        const result = yield db_1.default.question.create({ data: { name } });
+        const result = yield db_1.default.question.create({ data: { name, answer } });
         res.status(201).json({ result, message: "ทำรายการสำเร็จ" });
     }
     catch (error) {
@@ -82,7 +81,7 @@ exports.createQuestion = createQuestion;
 const updateQuestion = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const id = parseInt(req.params.id);
-        const { name } = req.body;
+        const { name, answer } = req.body;
         if (!id || !name)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
         // Check
@@ -101,7 +100,7 @@ const updateQuestion = (req, res) => __awaiter(void 0, void 0, void 0, function*
             return res.status(400).json({ message: "มีข้อมูลนี้แล้ว" });
         const result = yield db_1.default.question.update({
             where: { id },
-            data: { name }
+            data: { name, answer }
         });
         return res.status(201).json({ result, message: "ทำรายการสำเร็จ" });
     }

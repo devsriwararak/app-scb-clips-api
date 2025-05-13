@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
+import { createMemberChangeCompany } from "./report.controller";
 
 export const getMembers = async (req: Request, res: Response) => {
     try {
@@ -107,7 +108,7 @@ export const updateMember = async (req: Request, res: Response) => {
 
         if (!id || !idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
-        // Check
+        // Check รหัสบัตรประชาชนซ้ำ
         const existing = await prisma.member.findFirst({
             where: {
                 idCard: {
@@ -119,23 +120,36 @@ export const updateMember = async (req: Request, res: Response) => {
                 }
             }
         })
-
         if (existing) return res.status(400).json({ message: "มีข้อมูลนี้แล้ว" })
+
+        // ถ้ามีการแก้ไขบริษัท ถึงจะทำงาน
+        const oldMember = await prisma.member.findUnique({ where: { id } })
+        if (!oldMember) return res.status(404).json({ message: "ไม่พบข้อมูลสมาชิก" })
+
+
+        if (companyId !== oldMember.companyId) {
+            // หา company name
+            const companyName = await prisma.company.findUnique({ where: { id: Number(companyId) } })
+            await createMemberChangeCompany({ id, oldCompanyId: oldMember.companyId, newCompany : companyName?.name })
+        }
+
+        const data = {
+            titleName,
+            fname,
+            lname,
+            idCard,
+            phone,
+            companyId: Number(companyId),
+            locationId: Number(locationId),
+            lecturerId: Number(lecturerId),
+            dateOfTraining
+        }
 
         const result = await prisma.member.update({
             where: { id },
-            data: {
-                titleName,
-                fname,
-                lname,
-                idCard,
-                phone,
-                companyId: Number(companyId),
-                locationId: Number(locationId),
-                lecturerId: Number(lecturerId),
-                dateOfTraining
-            }
+            data
         })
+
         return res.status(201).json({ result, message: "ทำรายการสำเร็จ" })
     } catch (error) {
         console.log(error);
@@ -165,16 +179,18 @@ export const checkIdCard = async (req: Request, res: Response) => {
         const { idCard } = req.body
         if (!idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
-            const result = await prisma.member.findFirst({
-                where: {idCard}
-            })
+        const result = await prisma.member.findFirst({
+            where: { idCard }
+        })
 
-            if(!result?.idCard) return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" })
+        if (!result?.idCard) return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" })
 
-            return res.status(200).json(result?.idCard)
+        return res.status(200).json(result?.idCard)
 
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error", error });
     }
 }
+
+// member Change Company Report

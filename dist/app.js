@@ -18,6 +18,7 @@ const vdo_routes_1 = __importDefault(require("./routes/vdo.routes"));
 const question_routes_1 = __importDefault(require("./routes/question.routes"));
 const questionEnd_routes_1 = __importDefault(require("./routes/questionEnd.routes"));
 const member_routes_1 = __importDefault(require("./routes/member.routes"));
+const report_routes_1 = __importDefault(require("./routes/report.routes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
@@ -36,6 +37,7 @@ app.use('/api/vdo', vdo_routes_1.default);
 app.use('/api/question', question_routes_1.default);
 app.use('/api/questionEnd', questionEnd_routes_1.default);
 app.use('/api/member', member_routes_1.default);
+app.use('/api/report', report_routes_1.default);
 // Middleware จัดการ Error
 app.use(error_middleware_1.errorHandler);
 exports.default = app;

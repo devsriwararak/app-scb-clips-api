@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteVideo = exports.updateVideo = exports.uploadVideo = exports.getAllVideos = void 0;
+exports.EndStreamVideo = exports.streamVideo = exports.getSecureVideos = exports.deleteVideo = exports.updateVideo = exports.uploadVideo = exports.getAllVideos = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const fs_1 = __importDefault(require("fs"));
 const ftpClient_1 = require("../config/ftpClient");
@@ -174,3 +174,82 @@ const deleteVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.deleteVideo = deleteVideo;
+// Check Id card
+const getSecureVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const idCard = req.body.idCard;
+        if (!idCard || idCard.length !== 13) {
+            return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" });
+        }
+        // Check idCard
+        const checkIdCard = yield db_1.default.member.findFirst({ where: { idCard } });
+        if (!checkIdCard)
+            return res.status(403).json({ message: "ไม่มีสิทธิ์เข้าถึงวิดีโอ !!" });
+        // load video
+        const videos = yield db_1.default.video.findMany({
+            orderBy: { createdAt: "desc" }
+        });
+        const result = yield Promise.all(videos.map((video) => __awaiter(void 0, void 0, void 0, function* () {
+            const token = yield (0, tools_1.generateSecureToken)(idCard, video.filePath);
+            return {
+                name: video.name,
+                filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${idCard}`,
+                detail: video.detail,
+                timeAdvert: video.timeAdvert
+            };
+        })));
+        return res.status(200).json({ data: result });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json(error);
+    }
+});
+exports.getSecureVideos = getSecureVideos;
+// Stream video
+const streamVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const client = yield (0, ftpClient_1.createFtpClient)();
+    try {
+        const { file, token, idCard } = req.query;
+        if (!file || !token || !idCard) {
+            return res.status(400).send('ข้อมูลไม่ครบ');
+        }
+        const tokenRecord = yield db_1.default.videoToken.findUnique({ where: { token } });
+        if (!tokenRecord)
+            return res.status(403).send("ไม่พบ token");
+        if (tokenRecord.used)
+            return res.status(403).send("token นี้ถูกใช้งานไปแล้ว");
+        if (tokenRecord.idCard !== idCard)
+            return res.status(403).send("idCard ไม่ตรง");
+        if (new Date() > tokenRecord.expiresAt)
+            return res.status(403).send("token หมดอายุ");
+        res.setHeader("Content-Type", "video/mp4");
+        yield client.downloadTo(res, file);
+        // อัปเดต token ว่าใช้แล้ว
+        yield db_1.default.videoToken.update({
+            where: { token },
+            data: { used: true },
+        });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json(error);
+    }
+    finally {
+        client.close();
+    }
+});
+exports.streamVideo = streamVideo;
+const EndStreamVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { idCard } = req.body;
+        console.log({ idCard });
+        yield db_1.default.member.update({ data: { statusVideoEnd: 1 }, where: { idCard } });
+        return res.status(200).json({ message: 'success' });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json(error);
+    }
+});
+exports.EndStreamVideo = EndStreamVideo;
