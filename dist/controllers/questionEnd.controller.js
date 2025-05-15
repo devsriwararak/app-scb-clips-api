@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteQuestionEnd = exports.updateQuestionEnd = exports.createQuestionEnd = exports.getQuestionsEnd = void 0;
+exports.EndQuestionUpdateStatus = exports.deleteQuestionEnd = exports.updateQuestionEnd = exports.createQuestionEnd = exports.getQuestionsEnd = void 0;
 const db_1 = __importDefault(require("../config/db"));
 // GET ALL
 const getQuestionsEnd = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -111,10 +111,11 @@ exports.createQuestionEnd = createQuestionEnd;
 const updateQuestionEnd = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const id = parseInt(req.params.id);
-        const { name } = req.body;
-        if (!id || !name)
+        const { name, questions } = req.body;
+        console.log({ questions });
+        if (!id)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
-        // Check
+        // // Check
         const existing = yield db_1.default.questionEnd.findFirst({
             where: {
                 name: {
@@ -128,10 +129,42 @@ const updateQuestionEnd = (req, res) => __awaiter(void 0, void 0, void 0, functi
         });
         if (existing)
             return res.status(400).json({ message: "มีข้อมูลนี้แล้ว" });
-        const result = yield db_1.default.question.update({
+        const result = yield db_1.default.questionEnd.update({
             where: { id },
-            data: { name }
+            data: { name },
         });
+        const allQuestionEndList = yield db_1.default.questionEndList.findMany({
+            where: { questionEndId: id },
+            select: { id: true }
+        });
+        const incomingIds = questions.filter((q) => q.id).map((q) => q.id);
+        const toDelete = allQuestionEndList.filter(eq => !incomingIds.includes(eq.id));
+        yield db_1.default.questionEndList.deleteMany({
+            where: {
+                id: { in: toDelete.map(q => q.id) }
+            }
+        });
+        for (const q of questions) {
+            console.log(q);
+            if (q.id) { // ถ้ามี ID แล้ว เป็น Update
+                yield db_1.default.questionEndList.update({
+                    where: { id: q.id },
+                    data: {
+                        question: q.question,
+                        status: q.status
+                    }
+                });
+            }
+            else { // ถ้ายังไม่มี ID เป็น Create
+                yield db_1.default.questionEndList.create({
+                    data: {
+                        question: q.question,
+                        status: q.status,
+                        questionEndId: id
+                    }
+                });
+            }
+        }
         return res.status(201).json({ result, message: "ทำรายการสำเร็จ" });
     }
     catch (error) {
@@ -160,3 +193,17 @@ const deleteQuestionEnd = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.deleteQuestionEnd = deleteQuestionEnd;
+// User
+const EndQuestionUpdateStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { idCard } = req.body;
+        console.log({ idCard });
+        yield db_1.default.member.update({ data: { statusQuestionEnd: 1 }, where: { idCard } });
+        return res.status(200).json({ message: 'success' });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json(error);
+    }
+});
+exports.EndQuestionUpdateStatus = EndQuestionUpdateStatus;

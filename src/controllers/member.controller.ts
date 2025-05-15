@@ -177,15 +177,17 @@ export const deleteMember = async (req: Request, res: Response) => {
 export const checkIdCard = async (req: Request, res: Response) => {
     try {
         const { idCard } = req.body
+        
         if (!idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
         const result = await prisma.member.findFirst({
             where: { idCard }
         })
 
+    
         if (!result?.idCard) return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" })
 
-        return res.status(200).json(result?.idCard)
+        return res.status(200).json(result)
 
     } catch (error) {
         console.log(error);

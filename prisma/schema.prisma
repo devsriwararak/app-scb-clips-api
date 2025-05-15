@@ -79,7 +79,7 @@ model QuestionEnd {
 
 model QuestionEndList {
   id Int @id @default(autoincrement())
-  question String @unique
+  question String 
   status Int @default(0)
   questionEndId Int
   questionEnd QuestionEnd @relation(fields: [questionEndId], references: [id])

@@ -176,7 +176,7 @@ const checkIdCard = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         });
         if (!(result === null || result === void 0 ? void 0 : result.idCard))
             return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" });
-        return res.status(200).json(result === null || result === void 0 ? void 0 : result.idCard);
+        return res.status(200).json(result);
     }
     catch (error) {
         console.log(error);

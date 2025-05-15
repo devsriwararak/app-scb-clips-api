@@ -223,23 +223,100 @@ const streamVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return res.status(403).send("idCard ไม่ตรง");
         if (new Date() > tokenRecord.expiresAt)
             return res.status(403).send("token หมดอายุ");
+        // res.setHeader("Content-Type", "video/mp4")
+        // await client.downloadTo(res, file)
+        // console.log("Range request:", req.headers.range)
+        // // อัปเดต token ว่าใช้แล้ว
+        // await prisma.videoToken.update({
+        //     where: { token },
+        //     data: { used: true },
+        // })
         res.setHeader("Content-Type", "video/mp4");
-        yield client.downloadTo(res, file);
-        // อัปเดต token ว่าใช้แล้ว
-        yield db_1.default.videoToken.update({
-            where: { token },
-            data: { used: true },
+        res.setHeader("Accept-Ranges", "bytes"); // helps with Safari
+        res.setHeader("Cache-Control", "no-cache");
+        client.downloadTo(res, file)
+            .then(() => __awaiter(void 0, void 0, void 0, function* () {
+            yield db_1.default.videoToken.update({
+                where: { token },
+                data: { used: true },
+            });
+            client.close();
+        }))
+            .catch((err) => {
+            console.error("Download error:", err);
+            if (!res.headersSent) {
+                res.status(500).send("เกิดข้อผิดพลาดระหว่างโหลดวิดีโอ");
+            }
+            client.close();
         });
     }
     catch (error) {
         console.log(error);
         return res.status(500).json(error);
-    }
-    finally {
         client.close();
     }
 });
 exports.streamVideo = streamVideo;
+// export const streamVideo = async (req: Request, res: Response) => {
+//     const client = await createFtpClient();
+//     const { file, token, idCard } = req.query as Record<string, string>;
+//     if (!file || !token || !idCard) {
+//         return res.status(400).send("ข้อมูลไม่ครบ");
+//     }
+//     try {
+//         const tokenRecord = await prisma.videoToken.findUnique({ where: { token } });
+//         if (!tokenRecord) return res.status(403).send("ไม่พบ token");
+//         // if (tokenRecord.used) return res.status(403).send("token นี้ถูกใช้งานไปแล้ว");
+//         if (tokenRecord.idCard !== idCard) return res.status(403).send("idCard ไม่ตรง");
+//         if (new Date() > tokenRecord.expiresAt) return res.status(403).send("token หมดอายุ");
+//         // สร้าง temp path สำหรับเก็บวิดีโอ
+//         const tempFile = path.join(tmpdir(), `${uuidv4()}.mp4`);
+//         await client.downloadTo(tempFile, file);
+//         client.close();
+//         const stat = fs.statSync(tempFile);
+//         const total = stat.size;
+//         const range = req.headers.range;
+//         if (!range) {
+//             res.writeHead(200, {
+//                 "Content-Length": total,
+//                 "Content-Type": "video/mp4",
+//                 "Accept-Ranges": "bytes",
+//                 "Cache-Control": "no-cache",
+//             });
+//             fs.createReadStream(tempFile)
+//                 .pipe(res)
+//                 .on("close", async () => {
+//                     await prisma.videoToken.update({ where: { token }, data: { used: true } });
+//                     fs.unlink(tempFile, () => {});
+//                 });
+//         } else {
+//             const parts = range.replace(/bytes=/, "").split("-");
+//             const start = parseInt(parts[0], 10);
+//             const end = parts[1] ? parseInt(parts[1], 10) : total - 1;
+//             const chunkSize = end - start + 1;
+//             const fileStream = fs.createReadStream(tempFile, { start, end });
+//             res.writeHead(206, {
+//                 "Content-Range": `bytes ${start}-${end}/${total}`,
+//                 "Accept-Ranges": "bytes",
+//                 "Content-Length": chunkSize,
+//                 "Content-Type": "video/mp4",
+//                 "Cache-Control": "no-cache",
+//             });
+//             fileStream
+//                 .pipe(res)
+//                 .on("close", async () => {
+//                     await prisma.videoToken.update({ where: { token }, data: { used: true } });
+//                     fs.unlink(tempFile, () => {});
+//                 });
+//         }
+//     } catch (error) {
+//         console.error("streamVideo error:", error);
+//         if (!res.headersSent) {
+//             res.status(500).send("เกิดข้อผิดพลาดระหว่างโหลดวิดีโอ");
+//         }
+//         client.close();
+//     }
+// };
 const EndStreamVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { idCard } = req.body;

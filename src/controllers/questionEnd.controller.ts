@@ -29,7 +29,7 @@ export const getQuestionsEnd = async (req: Request, res: Response) => {
                 include: {
                     questionEndList: {
                         orderBy: {
-                            id : "asc"
+                            id: "asc"
                         }
                     }
                 }
@@ -103,11 +103,13 @@ export const createQuestionEnd = async (req: Request, res: Response) => {
 export const updateQuestionEnd = async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id)
-        const { name } = req.body
+        const { name, questions } = req.body
+        console.log({questions});
+        
 
-        if (!id || !name) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
+        if (!id) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
-        // Check
+        // // Check
         const existing = await prisma.questionEnd.findFirst({
             where: {
                 name: {
@@ -122,11 +124,49 @@ export const updateQuestionEnd = async (req: Request, res: Response) => {
 
         if (existing) return res.status(400).json({ message: "มีข้อมูลนี้แล้ว" })
 
-        const result = await prisma.question.update({
+        const result = await prisma.questionEnd.update({
             where: { id },
-            data: { name }
+            data: { name },
         })
+
+        const allQuestionEndList = await prisma.questionEndList.findMany({
+            where: { questionEndId: id },
+            select: { id: true }
+        })
+
+        const incomingIds = questions.filter((q: any) => q.id).map((q: any) => q.id)
+        const toDelete = allQuestionEndList.filter(eq => !incomingIds.includes(eq.id))
+
+        await prisma.questionEndList.deleteMany({
+            where: {
+                id: { in: toDelete.map(q => q.id) }
+            }
+        })
+
+        for (const q of questions) {
+            console.log(q);
+
+            if (q.id) {   // ถ้ามี ID แล้ว เป็น Update
+                await prisma.questionEndList.update({
+                    where: { id: q.id },
+                    data: {
+                        question: q.question,
+                        status: q.status
+                    }
+                })
+            } else {   // ถ้ายังไม่มี ID เป็น Create
+                await prisma.questionEndList.create({
+                    data: {
+                        question: q.question,
+                        status: q.status,
+                        questionEndId: id
+                    }
+                })
+            }
+        }
+
         return res.status(201).json({ result, message: "ทำรายการสำเร็จ" })
+
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error", error });
@@ -139,18 +179,33 @@ export const deleteQuestionEnd = async (req: Request, res: Response) => {
         const id = parseInt(req.params.id)
         if (!id) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
-        await prisma.questionEndList.deleteMany({ 
+        await prisma.questionEndList.deleteMany({
             where: { questionEndId: id }
-         })
+        })
 
-         await prisma.questionEnd.delete({
-            where: {id}
-         })
-         
+        await prisma.questionEnd.delete({
+            where: { id }
+        })
+
         return res.status(200).json({ message: "ทำรายการสำเร็จ" })
 
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error", error });
+    }
+}
+
+// User
+export const EndQuestionUpdateStatus = async (req: Request, res: Response) => {
+    try {
+        const { idCard } = req.body
+        console.log({ idCard });
+        await prisma.member.update({ data: { statusQuestionEnd: 1 }, where: { idCard } })
+
+        return res.status(200).json({ message: 'success' })
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(error);
     }
 }
