@@ -13,4 +13,7 @@ router.post('/add', (0, asyncHandler_1.asyncHandler)(member_controller_1.createM
 router.put('/:id', auth_middleware_1.authenticateToken, (0, asyncHandler_1.asyncHandler)(member_controller_1.updateMember));
 router.delete('/:id', auth_middleware_1.authenticateToken, (0, asyncHandler_1.asyncHandler)(member_controller_1.deleteMember));
 router.post('/checkIdCard', (0, asyncHandler_1.asyncHandler)(member_controller_1.checkIdCard));
+//certificate
+router.post('/certificate', auth_middleware_1.authenticateToken, (0, asyncHandler_1.asyncHandler)(member_controller_1.certificatePDF));
+router.post('/certificate/send', (0, asyncHandler_1.asyncHandler)(member_controller_1.certificatePDFSend));
 exports.default = router;

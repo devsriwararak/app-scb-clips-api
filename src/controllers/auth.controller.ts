@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import prisma from "../config/db";
 import bcrypt from 'bcryptjs'
 import jwt from "jsonwebtoken"
+import { asyncHandler } from "../utils/asyncHandler";
+import { checkExpiredCertificates } from "../utils/tools";
 
 const JWT_SECRET = process.env.JWT_SECRET || ""
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET!;
@@ -72,6 +74,8 @@ export const login = async (req: Request, res: Response) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
+        await checkExpiredCertificates()
+        
         return res.json({
             id: user.id,
             username: user.username,

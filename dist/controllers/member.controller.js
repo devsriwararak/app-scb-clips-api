@@ -12,9 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
+exports.certificatePDFSend = exports.certificatePDF = exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const report_controller_1 = require("./report.controller");
+const tools_1 = require("../utils/tools");
+const nodemailer_1 = __importDefault(require("nodemailer"));
+const date_fns_1 = require("date-fns");
 const getMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -65,7 +68,7 @@ exports.getMembers = getMembers;
 // Create
 const createMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining } = req.body;
+        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body;
         console.log(req.body);
         if (!titleName || !fname || !lname || !idCard || !phone || !companyId || !locationId || !lecturerId) {
             return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
@@ -83,6 +86,7 @@ const createMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 lname,
                 idCard,
                 phone,
+                email,
                 companyId: Number(companyId),
                 locationId: Number(locationId),
                 lecturerId: Number(lecturerId),
@@ -101,7 +105,7 @@ exports.createMember = createMember;
 const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const id = parseInt(req.params.id);
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining } = req.body;
+        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body;
         if (!id || !idCard)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
         // Check รหัสบัตรประชาชนซ้ำ
@@ -133,6 +137,7 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             lname,
             idCard,
             phone,
+            email,
             companyId: Number(companyId),
             locationId: Number(locationId),
             lecturerId: Number(lecturerId),
@@ -185,3 +190,75 @@ const checkIdCard = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.checkIdCard = checkIdCard;
 // member Change Company Report
+// Certificate PDF
+const certificatePDF = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { idCard } = req.body;
+        if (!idCard)
+            return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" });
+        const member = yield db_1.default.member.findUnique({
+            where: { idCard }
+        });
+        if (!member)
+            return res.status(404).json({ message: "ไม่พบสามาชิกท่านนี้ !" });
+        if (member && member.statusQuestionEnd !== 1)
+            return res.status(404).json({ message: 'คุณยังไม่ทำข้อสอบ' });
+        //  สร้าง PDF
+        const pdfBytes = yield (0, tools_1.generatePdf)(member);
+        res.setHeader('Content-Type', 'application/pdf');
+        // res.send(Buffer.from(pdfBytes))
+        res.send(pdfBytes);
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+exports.certificatePDF = certificatePDF;
+const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { idCard } = req.body;
+        console.log({ idCard });
+        const member = yield db_1.default.member.findUnique({ where: { idCard } });
+        if (!member)
+            return res.status(404).json({ message: 'Member not found' });
+        if (member && member.statusQuestionEnd !== 1)
+            return res.status(404).json({ message: 'คุณยังไม่ทำข้อสอบ' });
+        // ส่ง mail
+        const transporter = nodemailer_1.default.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+        const pdfBytes = yield (0, tools_1.generatePdf)(member);
+        const namePDF = `certificate_${idCard}.pdf`;
+        yield transporter.sendMail({
+            from: `"Thai Business Mate" <${process.env.EMAIL_USER}>`,
+            to: member.email,
+            subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
+            text: `ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} , โปรดดูใบรับรองของคุณที่แนบมา`,
+            attachments: [
+                {
+                    filename: namePDF,
+                    content: pdfBytes,
+                    contentType: 'application/pdf',
+                },
+            ],
+        });
+        // บันทึก DB
+        yield db_1.default.member.update({
+            where: { idCard },
+            data: {
+                dateEndCertificate: (0, date_fns_1.addYears)(new Date(), 2)
+            }
+        });
+        res.status(200).json({ message: 'ส่ง Email สำเร็จ !!' });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+exports.certificatePDFSend = certificatePDFSend;

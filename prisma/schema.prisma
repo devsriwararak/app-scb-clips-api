@@ -92,6 +92,7 @@ model Member {
   fname String
   lname String
   idCard  String @unique
+  email String @unique
   phone String
   companyId Int
   company Company @relation(fields: [companyId],references: [id])
@@ -102,7 +103,7 @@ model Member {
   createdAt DateTime @default(now())
   statusVideoEnd Int @default(0)
   statusQuestionEnd Int @default(0)
-  dateOfTraining DateTime
+  dateOfTraining DateTime?
   dateEndCertificate DateTime?
   memberChangeCompany MemberChangeCompany[]
 }

@@ -16,6 +16,7 @@ exports.logout = exports.refreshTokene = exports.login = exports.registerTest = 
 const db_1 = __importDefault(require("../config/db"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const tools_1 = require("../utils/tools");
 const JWT_SECRET = process.env.JWT_SECRET || "";
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
@@ -73,6 +74,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
+        yield (0, tools_1.checkExpiredCertificates)();
         return res.json({
             id: user.id,
             username: user.username,

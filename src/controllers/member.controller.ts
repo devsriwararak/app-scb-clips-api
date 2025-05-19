@@ -3,6 +3,11 @@ import { Request, Response } from "express";
 import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
 import { createMemberChangeCompany } from "./report.controller";
+import { generatePdf } from "../utils/tools";
+import nodemailer from 'nodemailer'
+import { addYears } from 'date-fns'
+
+
 
 export const getMembers = async (req: Request, res: Response) => {
     try {
@@ -63,7 +68,7 @@ export const getMembers = async (req: Request, res: Response) => {
 export const createMember = async (req: Request, res: Response) => {
     try {
 
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining } = req.body
+        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body
 
         console.log(req.body);
 
@@ -86,6 +91,7 @@ export const createMember = async (req: Request, res: Response) => {
                 lname,
                 idCard,
                 phone,
+                email,
                 companyId: Number(companyId),
                 locationId: Number(locationId),
                 lecturerId: Number(lecturerId),
@@ -104,7 +110,7 @@ export const createMember = async (req: Request, res: Response) => {
 export const updateMember = async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id)
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining } = req.body
+        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body
 
         if (!id || !idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
@@ -130,7 +136,7 @@ export const updateMember = async (req: Request, res: Response) => {
         if (companyId !== oldMember.companyId) {
             // หา company name
             const companyName = await prisma.company.findUnique({ where: { id: Number(companyId) } })
-            await createMemberChangeCompany({ id, oldCompanyId: oldMember.companyId, newCompany : companyName?.name })
+            await createMemberChangeCompany({ id, oldCompanyId: oldMember.companyId, newCompany: companyName?.name })
         }
 
         const data = {
@@ -139,6 +145,7 @@ export const updateMember = async (req: Request, res: Response) => {
             lname,
             idCard,
             phone,
+            email,
             companyId: Number(companyId),
             locationId: Number(locationId),
             lecturerId: Number(lecturerId),
@@ -177,14 +184,13 @@ export const deleteMember = async (req: Request, res: Response) => {
 export const checkIdCard = async (req: Request, res: Response) => {
     try {
         const { idCard } = req.body
-        
+
         if (!idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
         const result = await prisma.member.findFirst({
             where: { idCard }
         })
 
-    
         if (!result?.idCard) return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" })
 
         return res.status(200).json(result)
@@ -196,3 +202,87 @@ export const checkIdCard = async (req: Request, res: Response) => {
 }
 
 // member Change Company Report
+
+// Certificate PDF
+export const certificatePDF = async (req: Request, res: Response) => {
+    try {
+        const { idCard } = req.body
+
+        if (!idCard) return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" })
+
+        const member = await prisma.member.findUnique({
+            where: { idCard }
+        })
+
+        if (!member) return res.status(404).json({ message: "ไม่พบสามาชิกท่านนี้ !" })
+        if (member && member.statusQuestionEnd !== 1) return res.status(404).json({ message: 'คุณยังไม่ทำข้อสอบ' })
+
+        //  สร้าง PDF
+        const pdfBytes = await generatePdf(member)
+        res.setHeader('Content-Type', 'application/pdf')
+        // res.send(Buffer.from(pdfBytes))
+        res.send(pdfBytes);
+
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+}
+
+export const certificatePDFSend = async (req: Request, res: Response) => {
+    try {
+        const { idCard } = req.body
+        console.log({ idCard });
+
+        const member = await prisma.member.findUnique({ where: { idCard } })
+        if (!member) return res.status(404).json({ message: 'Member not found' })
+        if (member && member.statusQuestionEnd !== 1) return res.status(404).json({ message: 'คุณยังไม่ทำข้อสอบ' })
+
+        // ส่ง mail
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        })
+
+        const pdfBytes = await generatePdf(member) as Buffer
+        const namePDF = `certificate_${idCard}.pdf`
+
+        await transporter.sendMail({
+            from: `"Thai Business Mate" <${process.env.EMAIL_USER}>`,
+            to: member.email,
+            subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
+            text: `ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} , โปรดดูใบรับรองของคุณที่แนบมา`,
+            attachments: [
+                {
+                    filename: namePDF,
+                    content: pdfBytes,
+                    contentType: 'application/pdf',
+                },
+            ],
+        })
+
+        
+
+        // บันทึก DB
+        await prisma.member.update({
+            where: { idCard },
+            data: {
+                dateEndCertificate: addYears(new Date(), 2)
+            }
+        })
+
+        res.status(200).json({ message: 'ส่ง Email สำเร็จ !!' })
+
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+}
+
+
+
