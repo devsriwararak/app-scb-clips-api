@@ -126,8 +126,8 @@ export async function generatePdf(member: any) {
         const logoPath = path.join(process.cwd(), 'src', 'assets', 'logo.png');
         const logoBuffer = await fs.readFile(logoPath);
         const logoBase64 = logoBuffer.toString('base64');
-        
-        const formattedDateCertificate = moment(member.dateOfTraining).format(' D MMMM ')  + (moment(member.dateOfTraining).year() + 543);
+
+        const formattedDateCertificate = moment(member.dateOfTraining).format(' D MMMM ') + (moment(member.dateOfTraining).year() + 543);
         const formattedDateCertificateDMY = moment(member.dateOfTraining).format('DD/MM') + '/' + (moment(member.dateOfTraining).year() + 543);
         const formattedDateCertificateEndDMY = moment(member.dateEndCertificate).format('DD/MM') + '/' + (moment(member.dateEndCertificate).year() + 543);
 
@@ -138,9 +138,9 @@ export async function generatePdf(member: any) {
                 ...member,
                 logoBase64,
                 certificateDetail_1,
-                certificateDetail_2 ,
-                formattedDateCertificate , 
-                formattedDateCertificateDMY , 
+                certificateDetail_2,
+                formattedDateCertificate,
+                formattedDateCertificateDMY,
                 formattedDateCertificateEndDMY
             }
         });

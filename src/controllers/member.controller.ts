@@ -6,6 +6,7 @@ import { createMemberChangeCompany } from "./report.controller";
 import { generatePdf } from "../utils/tools";
 import nodemailer from 'nodemailer'
 import { addYears } from 'date-fns'
+import moment from "moment";
 
 
 
@@ -239,7 +240,14 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
         const { idCard } = req.body
         console.log({ idCard });
 
-        const member = await prisma.member.findUnique({ where: { idCard } })
+        const member = await prisma.member.findUnique({
+            where: { idCard },
+            include: {
+                company: { select: { name: true } },
+                location: { select: { name: true } },
+                lecturer: { select: { name: true } }
+            }
+        })
         if (!member) return res.status(404).json({ message: 'Member not found' })
         if (member && member.statusQuestionEnd !== 1) return res.status(404).json({ message: 'คุณยังไม่ทำข้อสอบ' })
 
@@ -255,11 +263,20 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
         const pdfBytes = await generatePdf(member) as Buffer
         const namePDF = `certificate_${idCard}.pdf`
 
+        const formattedDateCertificateDMY = moment(member.dateOfTraining).format('DD/MM') + '/' + (moment(member.dateOfTraining).year() + 543);
+        const formattedDateCertificateEndDMY = moment(member.dateEndCertificate).format('DD/MM') + '/' + (moment(member.dateEndCertificate).year() + 543);
+
+        const text = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
+        รหัสบัตรประชาชน : ${member.idCard}
+        วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
+        วันที่ได้ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
+        โปรดดูใบรับรองของคุณที่แนบมา`
+
         await transporter.sendMail({
             from: `"Thai Business Mate" <${process.env.EMAIL_USER}>`,
             to: member.email,
             subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
-            text: `ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} , โปรดดูใบรับรองของคุณที่แนบมา`,
+            text: text,
             attachments: [
                 {
                     filename: namePDF,
@@ -268,8 +285,6 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
                 },
             ],
         })
-
-
 
         // บันทึก DB
         await prisma.member.update({
