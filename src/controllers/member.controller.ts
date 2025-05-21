@@ -211,7 +211,12 @@ export const certificatePDF = async (req: Request, res: Response) => {
         if (!idCard) return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" })
 
         const member = await prisma.member.findUnique({
-            where: { idCard }
+            where: { idCard },
+            include: {
+                company: { select: { name: true } },
+                location: { select: { name: true } },
+                lecturer: { select: { name: true } }
+            }
         })
 
         if (!member) return res.status(404).json({ message: "ไม่พบสามาชิกท่านนี้ !" })
@@ -222,7 +227,6 @@ export const certificatePDF = async (req: Request, res: Response) => {
         res.setHeader('Content-Type', 'application/pdf')
         // res.send(Buffer.from(pdfBytes))
         res.send(pdfBytes);
-
 
     } catch (error) {
         console.log(error);
@@ -265,7 +269,7 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
             ],
         })
 
-        
+
 
         // บันทึก DB
         await prisma.member.update({

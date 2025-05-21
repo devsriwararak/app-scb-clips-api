@@ -1,19 +1,238 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8" />
-  <title>ใบรับรอง</title>
+  <title>ใบเซอร์ : <%= member.idCard %>
+  </title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="p-10">
-  <div class="border-4 border-blue-500 rounded-lg p-8 max-w-xl mx-auto">
-    <h1 class="text-3xl font-bold text-center mb-4">ใบรับรอง</h1>
-    <p class="text-lg text-center mb-6">
-      สวัสดีครับคุณ <span class="font-semibold text-blue-700"><%= member.fname %></span>
-    </p>
-    <p class="text-center text-gray-700 bg-red-500">
-      ข้อมูลเพิ่มเติม: <%= member.details %>
-    </p>
+
+<body>
+  <div class="p-5">
+    <div class="flex justify-start">
+      <img src="data:image/png;base64,<%= member.logoBase64 %>" alt="logo" class="w-20 mb-4" />
+    </div>
+
+    <div class="border border-gray-800 ">
+      <h1 class="text-base font-medium text-center bg-gray-200 py-1 border-b border-gray-800">
+        บริษัทฟินิคซ พัลพ แอนด์ เพเพอร์ จำกัด (มหาชน)
+      </h1>
+      <div class="flex flex-col justify-center items-center text-base border-b border-gray-800 py-1.5">
+        <p>
+          เอกสารผ่านการอบรม "ความปลอดภัย อาชีวอนามัย และสภาพแวดล้อมในการทำงาน"
+        </p>
+        <p>ตาม พรบ.ความปลอดภัยฯ พ.ศ. 2554 สำหรับคู่ธุรกิจ</p>
+      </div>
+
+      <div class="py-2 text-center mt-1">
+        <section class="">
+          <p class="text-base">เอกสารนี้ให้ไว้เพื่อแสดงว่า</p>
+          <p class=" text-blue-700 font-medium text-base">
+            <%= member.titleName %> <%= member.fname %> <%= member.lname %>
+          </p>
+          <div class="-mt-4">
+            .........................................................................
+          </div>
+        </section>
+
+        <section class="mt-2 flex gap-1 px-2">
+          <div class="w-2/3 relative ">
+            <p class="mt-2 text-gray-600">บริษัท / หจก.
+              .........................................................................................</p>
+            <span class="absolute left-[95px] top-0 text-blue-700 font-medium text-base whitespace-nowrap">
+             <%= member.company.name %>
+            </span>
+          </div>
+
+          <div class="w-1/3 relative ">
+            <p class="mt-2 text-gray-600">
+              เบอร์โทรศัพท์ ...............................
+            </p>
+            <span class="absolute left-[120px] top-0 text-blue-700 font-medium text-base whitespace-nowrap">
+              <%= member.phone %>
+            </span>
+          </div>
+        </section>
+
+        <section class="mt-2 flex gap-2 px-2">
+          <div class="w-5/12 relative ">
+            <p class="mt-2 text-gray-600">
+              เลขบัตรประชาชน 13 หลัก. .........................
+            </p>
+            <span class="absolute left-[180px] top-0 text-blue-700 font-medium text-base whitespace-nowrap">
+              <%= member.idCard %>
+            </span>
+          </div>
+
+          <div class="w-7/12 relative ">
+            <p class="mt-2 text-gray-600">
+              สถานที่อบรม ......................................................................
+            </p>
+            <span class="absolute left-[110px] top-0 text-blue-700 font-medium text-base whitespace-nowrap">
+               <%= member.location.name %>
+            </span>
+          </div>
+        </section>
+
+        <section class="mt-3">
+          <p class="text-lg font-medium">
+            ได้ผ่านการอบรมความปลอดภัยฯ เพื่อปฏิบัติงานกับบริษัทฟินิคชฯ
+            และให้คำมั่นสัญญาว่า
+          </p>
+          <p class="text-gray-600 text-sm mt-1">
+            ด้วยข้าพเจ้าได้รับทราบแนวทางการบังคับใช้ "กฎแห่งการรักษาชีวิต
+            (Life Saving Rules) และกฎความปลอดภัยทัวไป
+          </p>
+          <p class="text-gray-600 text-sm ">
+            ( General Safety Rules)"
+          </p>
+          <p class="text-gray-600 text-sm ">
+            เพื่อนำไปใช้ในการปฏิบัติงานให้เกิดความปลอดภัยแก่ตนเอง โดยจะยึดถือ
+            ให้พันธะสัญญาและปฏิบัติอย่างเคร่งครัด ดังนี้
+          </p>
+        </section>
+
+        <section class="mt-4 flex gap-2">
+          <div class="w-1/2 border-t border-r border-b border-gray-800">
+            <p class="py-1 bg-gray-200 border-b border-gray-800 text-sm">
+              กฎพิทักษ์ชีวิต 11 ข้อ : Life Saving Rules
+            </p>
+            <ul class="px-2 py-2 text-xs space-y-1">
+              <% member.certificateDetail_1.forEach(function(item) { %>
+                <li class="flex items-start gap-2">
+                  <span class="w-6 text-right">
+                    <%= item.id %>.
+                  </span>
+                  <span class="flex-1 text-left">
+                    <%= item.text %>
+                  </span>
+                </li>
+                <% }) %>
+            </ul>
+          </div>
+          <div class="w-1/2 border-t border-l border-b border-gray-800">
+            <p class="py-1 bg-gray-200 border-b border-gray-800 text-sm">
+              กฎความปลอดภัยทั่วไป 11 ข้อ : General Safety Rules
+            </p>
+            <ul class="px-2 py-2 flex flex-col justify-start items-start text-xs">
+              <% member.certificateDetail_2.forEach(function(item) { %>
+                <li class="flex items-start gap-2">
+                  <span class="w-6 text-right">
+                    <%= item.id %>.
+                  </span>
+                  <span class="flex-1 text-left">
+                    <%= item.text %>
+                  </span>
+                </li>
+                <% }) %>
+            </ul>
+          </div>
+        </section>
+
+        <section class="mt-2 px-2">
+          <p class="text-gray-600 text-sm text-start pl-8">
+            ข้าพเจ้าได้รับทราบ ทำความเข้าใจ และตระหนักต่อข้อบังคับข้างต้น
+            ข้าพเจ้ายินยอมที่จะปฏิบัติตามกฎแห่งการรักษาชีวิต
+          </p>
+          <p class="text-gray-600 text-sm  text-start">
+            ตามที่บริษัทได้ กำหนดไว้ในเอกสารอย่างเคร่งครัด เพื่อเป็นหลักฐาน
+            ข้าพเจ้าได้ลงลายมือชื่อไว้เป็นสำคัญต่อบริษัทฯ
+          </p>
+        </section>
+
+        <section class="mt-3 flex gap-2">
+          <div class="w-7/12">
+            <div class="flex gap-2">
+              <div class="w-1/2 border-t border-r border-b border-gray-800">
+                <p class="py-1 bg-gray-200 border-b border-gray-800 text-sm">
+                  ผู้เข้าอบรมลงนามรับทราบกฎ
+                </p>
+                <div class="py-2 relative">
+                  <p class="text-gray-600 text-sm">
+                    ลงนาม ....................................
+                  </p>
+                  <span class="absolute left-[10px] text-blue-700 font-medium text-base whitespace-nowrap">
+                    <%= member.titleName %> <%= member.fname %> <%= member.lname %>
+                  </span>
+                  <p class="mt-3 text-gray-600">
+                    ....................................
+                  </p>
+                  <span class="absolute left-[50px] top-[60px] text-blue-700 font-medium text-sm whitespace-nowrap">
+                    
+                    <%= member.formattedDateCertificate %>
+                  </span>
+                  <p class="mt-5 text-gray-600 text-sm">วัน / เดือน / ปี</p>
+                </div>
+              </div>
+
+              <div class="w-1/2 border border-gray-800">
+                <p class="py-1 bg-gray-200 border-b border-gray-800 text-sm">
+                  ผู้บังคับบัญชาต้นสังกัดผู้เข้าอบรม
+                </p>
+                <div class="py-2 relative">
+                  <p class="text-gray-600 text-sm">
+                    ลงนาม ....................................
+                  </p>
+                  <p class="mt-1 text-gray-600">
+                    ....................................
+                  </p>
+                  <p class="mt-1 text-gray-600 text-sm">วัน / เดือน / ปี</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-start text-gray-500 px-2 py-1 mt-2">
+              PPPC-KK-F-SMS-06-029 Rev.02 (XX/XX/XX)
+            </p>
+          </div>
+
+          <div class="w-5/12 flex flex-col gap-2">
+            <div class="border-t border-l border-b border-gray-800 relative">
+              <p class="py-1.5 bg-gray-200 border-b border-gray-800 text-sm">
+                วิทยากร
+              </p>
+              <p class="text-gray-600 mt-5 text-sm">
+                ลงนาม ....................................
+              </p>
+              <p class="mt-2 text-gray-600">
+                ....................................
+              </p>
+              <span class="absolute left-[140px] top-[40px] text-blue-700 font-medium text-base whitespace-nowrap">
+                ลายเซ็น
+              </span>
+              <span class="absolute left-[90px] top-[73px] text-blue-700 font-medium text-base whitespace-nowrap">
+                นายสมหมาย กำสมุทร
+              </span>
+            </div>
+            <div class="flex gap-2">
+              <div class="w-5/12 border border-gray-800">
+                <p class="py-1 bg-gray-200 border-b border-gray-800 text-sm">
+                  วันที่ออกใบอนุญาต
+                </p>
+                <p class="py-1 text-blue-700 font-medium text-base">
+                  
+                   <%= member.formattedDateCertificateDMY %>
+                
+                </p>
+              </div>
+              <div class="w-7/12 border-t border-l border-b border-gray-800">
+                <p class="py-1.5 bg-gray-200 border-b border-gray-800 text-sm">
+                  วันที่ใบอนุญาตหมดอายุ
+                </p>
+                <p class="py-1 text-red-700 font-medium text-base">
+                
+                    <%= member.formattedDateCertificateEndDMY %>
+                </p>
+                <p class="text-xs text-gray-600">
+                  หรือพนักงานโยกย้ายสังกัตใหม่
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
   </div>
 </body>
+
 </html>
