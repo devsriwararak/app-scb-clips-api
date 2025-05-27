@@ -16,14 +16,20 @@ export const getMembers = async (req: Request, res: Response) => {
         const limit = parseInt(req.query.limit as string) || 5
         const search = (req.query.search as string) || ""
         const companyId = (req.query.companyId as string) || ""
+        const terms = search?.split(/\s+/).filter(Boolean) || []
+    
 
         const where: Prisma.MemberWhereInput = {
-            ...(search && {
-                OR: [
-                    { fname: { contains: search, mode: 'insensitive' } },
-                    { lname: { contains: search, mode: 'insensitive' } },
-                    { idCard: { contains: search, mode: 'insensitive' } },
-                ]
+            ...(terms.length > 0 && {
+                AND: terms.map(item => ({
+                    OR: [
+                        { titleName: { contains: item, mode: 'insensitive' } },
+                        { fname: { contains: item, mode: 'insensitive' } },
+                        { lname: { contains: item, mode: 'insensitive' } },
+                        { idCard: { contains: item, mode: 'insensitive' } },
+                    ]
+                }))
+
             }),
             ...(companyId && {
                 companyId: parseInt(companyId)
@@ -111,7 +117,9 @@ export const createMember = async (req: Request, res: Response) => {
 export const updateMember = async (req: Request, res: Response) => {
     try {
         const id = parseInt(req.params.id)
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body
+        const { titleName, fname, lname, idCard, idCardType, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body
+        console.log(req.body);
+
 
         if (!id || !idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
@@ -145,6 +153,7 @@ export const updateMember = async (req: Request, res: Response) => {
             fname,
             lname,
             idCard,
+            idCardType,
             phone,
             email,
             companyId: Number(companyId),

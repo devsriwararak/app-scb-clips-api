@@ -92,6 +92,7 @@ model Member {
   fname String
   lname String
   idCard  String @unique
+  idCardType Int @default(1)
   email String @unique
   phone String
   companyId Int
