@@ -9,6 +9,7 @@ export const createFtpClient = async()=> {
         user: process.env.FTP_USER!,
         password: process.env.FTP_PASSWORD!,
         secure: false, // เปลี่ยนเป็น true หากใช้ FTPS
+        port: 21
     })
     return client;
 }

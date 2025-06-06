@@ -18,6 +18,7 @@ const createFtpClient = () => __awaiter(void 0, void 0, void 0, function* () {
         user: process.env.FTP_USER,
         password: process.env.FTP_PASSWORD,
         secure: false, // เปลี่ยนเป็น true หากใช้ FTPS
+        port: 21
     });
     return client;
 });

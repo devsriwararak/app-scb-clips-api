@@ -20,6 +20,9 @@ const promises_1 = __importDefault(require("fs/promises"));
 const path_1 = __importDefault(require("path"));
 const puppeteer_1 = __importDefault(require("puppeteer"));
 const ejs_1 = __importDefault(require("ejs"));
+const moment_1 = __importDefault(require("moment"));
+require("moment/locale/th");
+moment_1.default.locale('th'); // ตั้งให้ใช้ภาษาไทย
 const sanitizeFilename = (filename) => {
     return filename.replace(/[^a-zA-Z0-9_.-]/g, "_");
 };
@@ -88,207 +91,69 @@ const checkExpiredCertificates = () => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.checkExpiredCertificates = checkExpiredCertificates;
-// export const generatePdf = async (member: {
-//     fname: string
-//     lname: string
-//     createdAt: Date
-// }) => {
-//     const pdfDoc = await PDFDocument.create()
-//     const page = pdfDoc.addPage([600, 500])
-//     // ✅ โหลดฟอนต์ภาษาไทย
-//     const fontBytes = fs.readFileSync(path.join(__dirname, 'fonts', 'THSarabunNew.ttf'))
-//     const thaiFont = await pdfDoc.embedFont(fontBytes)
-//     const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-//     const { width, height } = page.getSize()
-//     // 🔹 โหลดโลโก้
-//     const logoPath = path.join(__dirname, '../assets/logo.png')
-//     const logoBytes = fs.readFileSync(logoPath)
-//     const logoImage = await pdfDoc.embedPng(logoBytes)
-//     const pageWidth = page.getWidth()
-//     const mainBoxX = 20
-//     const mainBoxWidth = pageWidth - 40
-//     const mainBoxY = 70
-//     const mainBoxHeight = height - 120
-//     const titleBoxHeight = 30
-//     // 🔹 วาดโลโก้มุมซ้ายบน
-//     page.drawImage(logoImage, {
-//         x: 20,
-//         y: height - 40,
-//         width: 60,
-//         height: 16,
-//     })
-//     // 🔹 กรอบหลัก (border)
-//     page.drawRectangle({
-//         x: mainBoxX,
-//         y: mainBoxY,
-//         width: mainBoxWidth,
-//         height: mainBoxHeight,
-//         borderColor: rgb(0, 0, 0),
-//         borderWidth: 1,
-//     })
-//     // 🔹 วาดกรอบหัวข้อ พร้อมพื้นหลังเทาอ่อน
-//     page.drawRectangle({
-//         x: mainBoxX,
-//         y: mainBoxY + mainBoxHeight - titleBoxHeight,
-//         width: mainBoxWidth,
-//         height: titleBoxHeight,
-//         color: rgb(0.9, 0.9, 0.9), // พื้นหลังเทาอ่อน
-//         // borderColor: rgb(0.6, 0.6, 0.6),
-//         borderWidth: 1,
-//     })
-//     // 🔹 ข้อความหัวข้อใบเซอร์
-//     const titleText = 'บริษัทฟินิคซ พัลพ แอนด์ เพเพอร์ จำกัด (มหาชน)'
-//     const fontSize = 18
-//     const textWidth = thaiFont.widthOfTextAtSize(titleText, fontSize)
-//     page.drawText(titleText, {
-//         x: mainBoxX + (mainBoxWidth - textWidth) / 2,
-//         y: mainBoxY + mainBoxHeight - titleBoxHeight + 12,
-//         size: 18,
-//         font,
-//         color: rgb(0.2, 0.2, 0.2),
-//     })
-//     // 🔹 ข้อมูลผู้รับ
-//     page.drawText(`This certifies that: ${member.fname} ${member.lname}`, {
-//         x: 60,
-//         y: height - 140,
-//         size: 16,
-//         font,
-//     })
-//     page.drawText(`Completed on: ${new Date(member.createdAt).toLocaleDateString()}`, {
-//         x: 60,
-//         y: height - 160,
-//         size: 14,
-//         font,
-//     })
-//     // 🔹 กรอบย่อยซ้าย
-//     page.drawRectangle({
-//         x: 60,
-//         y: height - 280,
-//         width: 200,
-//         height: 100,
-//         borderColor: rgb(0, 0, 0),
-//         borderWidth: 1,
-//     })
-//     page.drawText('Training Details:', {
-//         x: 70,
-//         y: height - 190,
-//         size: 12,
-//         font,
-//         color: rgb(0.2, 0.2, 0.6),
-//     })
-//     page.drawText('- Course: Advanced Skills\n- Duration: 3 Days', {
-//         x: 70,
-//         y: height - 210,
-//         size: 11,
-//         font,
-//         lineHeight: 14,
-//     })
-//     // 🔹 กรอบย่อยขวา
-//     page.drawRectangle({
-//         x: width - 260,
-//         y: height - 280,
-//         width: 200,
-//         height: 100,
-//         borderColor: rgb(0, 0, 0),
-//         borderWidth: 1,
-//     })
-//     page.drawText('Instructor Notes:', {
-//         x: width - 250,
-//         y: height - 190,
-//         size: 12,
-//         font,
-//         color: rgb(0.2, 0.2, 0.6),
-//     })
-//     page.drawText('Great participation\nand excellent scores!', {
-//         x: width - 250,
-//         y: height - 210,
-//         size: 11,
-//         font,
-//         lineHeight: 14,
-//     })
-//     return await pdfDoc.save()
-// }
-// export const generatePdf = (member : any) => {
-//   return new Promise((resolve, reject) => {
-//     try {
-//       const doc = new PDFDocument();
-//       const buffers = [] as any;
-//       doc.on('data', buffers.push.bind(buffers));
-//       doc.on('end', () => {
-//         const pdfData = Buffer.concat(buffers);
-//         resolve(pdfData);
-//       });
-//       // โหลดฟอนต์ภาษาไทย
-//       const fontPath = path.join(__dirname, 'fonts', 'THSarabunNew.ttf');
-//       doc.registerFont('THSarabunNew', fontPath);
-//       doc.font('THSarabunNew').fontSize(20).text(`สวัสดีครับคุณ ${member.fname}`);
-//       doc.end();
-//     } catch (error) {
-//       reject(error);
-//     }
-//   });
-// };
-const html = `
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <title>ใบรับรอง</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="p-10">
-  <div class="border-4 border-blue-500 rounded-lg p-8 max-w-xl mx-auto">
-    <h1 class="text-3xl font-bold text-center mb-4">ใบรับรอง</h1>
-    <p class="text-lg text-center mb-6">สวัสดีครับคุณ <span class="font-semibold text-blue-700">สมชาย</span></p>
-    <p class="text-center text-gray-700">ขอแสดงความยินดีที่คุณสอบผ่านและได้รับใบรับรองนี้</p>
-  </div>
-</body>
-</html>
-`;
-// export const generatePdf = async () => {
-//   const browser = await puppeteer.launch();
-//   const page = await browser.newPage();
-//   // โหลด HTML เข้าหน้าเพจ
-//   await page.setContent(html, { waitUntil: 'networkidle0' });
-//   // สร้าง PDF
-//   const pdfBuffer = await page.pdf({
-//     format: 'A4',
-//     printBackground: true, // แสดง background สี และ CSS
-//   });
-//   await browser.close();
-//   return pdfBuffer;
-// };
-// export async function generatePdf(member: any) {
-//   const browser = await puppeteer.launch();
-//   const page = await browser.newPage();
-//   const filePath = path.join(process.cwd(), 'src/utils', 'pdf.html');
-//   const fileUrl = `file://${filePath}?name=${encodeURIComponent(member.lname)}`;
-//   await page.goto(fileUrl, { waitUntil: 'networkidle0' });
-//   const pdfBuffer = await page.pdf({
-//     format: 'A4',
-//     printBackground: true,
-//   });
-//   await browser.close();
-//   return pdfBuffer;
-// }
+const certificateDetail_1 = [
+    { id: 1, text: "ต้องใช้อุปกรณ์ป้องกันการตกจากที่สูงเมื่ออยู่ในพื้นที่ที่ไม่มีการ ป้องกันขณะทำงานที่มีความสูงตั้งแต่ 1.8 เมตรขึ้นไป" },
+    { id: 2, text: "ต้องตัดแยกระบบไฟฟ้าและพลังงานโดยการใช้ระบบ ล็อคกญแจและแขวนป้าย" },
+    { id: 3, text: "ต้องได้รับอนุญาตก่อนถอดหรือปลดอุปกรณ์ ปลอดภัยออก" },
+    { id: 4, text: "ต้องได้รับอนุญาตก่อนเข้าทำงานในสถานที่อับอากาศ" },
+    { id: 5, text: "ต้องมีใบอนุญาตทำงานที่ได้รับอนุมัติ (Work Permit) ตามลักษณะงานที่กำหนด" },
+    { id: 6, text: "ต้องไม่ดื่มเครื่องดื่มที่มีแอลกอฮอล์ หรือ เสพสารเสพติด เมื่อต้องทำงาน ขับขี่รถยนต์ หรือ รถจักรยานยนต์" },
+    { id: 7, text: "ต้องคาดเข็มขัดนิรภัยขณะขับขี่ หรือเดินทางโดยรถยนต์" },
+    { id: 8, text: "ต้องสวมหมวกนิรภัยในขณะขับขี่ หรือนั่งซ้อนท้ายรถจักรยานยนต์" },
+    { id: 9, text: "ต้องไม่ใช้โทรศัพท์มือถือขณะขับขี่รถยนต์ หรือรถจักรยานยนต์โดยไม่ใช้อุปกรณ์เสริมช่วย" },
+    { id: 10, text: "ต้องไม่สูบบุหรี่ในบริเวณโรงงาน รวมทั้งไม่พกพาบุหรี่ ไม้ชีดไฟหรือไฟแช็คเข้ามาในเขตโรงงาน" },
+    { id: 11, text: "ต้องดับเครื่องยนต์ ถอดกุญแจ ดึงเบรกมือ และหนุนหมอนรองล้อเมื่อจอดรถบรรทุกทุกครั้ง" },
+];
+const certificateDetail_2 = [
+    { id: 1, text: "ต้องรายงานผู้บังคับบัญชา หรือพนักงานผู้ควบคุมงาน ในกรณีเกิด อุบัติเหตุ หรือมีเหตุการณ์เกือบเกิดอุบัติเหตุ ที่ทำให้เกิดหรืออาจเกิดการบาดเจ็บ / ทรัพย์สินเสียหาย หรืออัคคีภัย" },
+    { id: 2, text: "ต้องสวมใส่อุปกรณ์ป้องกันอันตรายส่วนบุคคลที่กำหนดตามแต่ละประเภทงานทุกครั้" },
+    { id: 3, text: "ห้ามใส่กางเกงขาสั้น หรือสวมใส่รองเท้าแตะในเขตโรงงาน และต้องเข้าเขตปฏิบัติงานที่มีเครื่องจักร" },
+    { id: 4, text: "ห้ามเข้าไปในพื้นที่ควบคุม (Restricted Area) เช่น ห้องไฟฟ้า ห้องหม้อแปลง โดยไม่ได้รับอนุญาต" },
+    { id: 5, text: "ห้ามทำงานกับเครื่องจักร โดยไม่มีหน้าที่เกี่ยวข้อง" },
+    { id: 6, text: "ห้ามโหน เกาะ หรืออาศัยไปกับรถงานทุกชนิด เช่น Forklift, Clamp lift, Hand lif, Transfer car, รถตัก เป็นต้" },
+    { id: 7, text: "ห้ามใช้โทรศัพท์ หรือสวมใส่หูฟังขณะปฏิบัติงานกับเครื่องจักร" },
+    { id: 8, text: "ห้ามใช้โทรศัพท์ขณะขับขี่รถจักรยานในเขตโรงงาน" },
+    { id: 9, text: "ห้ามนำรถยนต์ รถจักรยานยนต์ และรถจักรยาน เข้าในเขตอาคารเครื่องจักรโดยไม่ได้รับอนุญาต" },
+    { id: 10, text: "ห้ามขับขี่ยานพาหนะ เกินความเร็วตามที่กำหนดแต่ละพื้นที่กำหนด" },
+    { id: 11, text: "ห้ามนำภาชนะบรรจุอาหาร หรือเครื่องดื่มมาใช้ในการบรรจุสารเคมี" },
+];
 function generatePdf(member) {
     return __awaiter(this, void 0, void 0, function* () {
-        // โหลดไฟล์เทมเพลต .ejs
-        const templatePath = path_1.default.join(process.cwd(), 'src/utils', 'pdf.ejs');
-        const templateStr = yield promises_1.default.readFile(templatePath, 'utf8');
-        // สร้าง HTML จาก template + ข้อมูล member
-        const html = ejs_1.default.render(templateStr, { member });
-        // สั่ง Puppeteer เปิดหน้า HTML นี้
-        const browser = yield puppeteer_1.default.launch();
-        const page = yield browser.newPage();
-        // แทนที่จะโหลดไฟล์ผ่าน URL ให้ใช้ setContent() ใส่ HTML ลงไปเลย
-        yield page.setContent(html, { waitUntil: 'networkidle0' });
-        // สร้าง PDF
-        const pdfBuffer = yield page.pdf({
-            format: 'A4',
-            printBackground: true,
-        });
-        yield browser.close();
-        return pdfBuffer;
+        try {
+            // โหลดไฟล์เทมเพลต .ejs
+            const templatePath = path_1.default.join(process.cwd(), 'src/utils', 'pdf.ejs');
+            const templateStr = yield promises_1.default.readFile(templatePath, 'utf8');
+            const logoPath = path_1.default.join(process.cwd(), 'src', 'assets', 'logo.png');
+            const logoBuffer = yield promises_1.default.readFile(logoPath);
+            const logoBase64 = logoBuffer.toString('base64');
+            const formattedDateCertificate = (0, moment_1.default)(member.dateOfTraining).format(' D MMMM ') + ((0, moment_1.default)(member.dateOfTraining).year() + 543);
+            const formattedDateCertificateDMY = (0, moment_1.default)(member.dateOfTraining).format('DD/MM') + '/' + ((0, moment_1.default)(member.dateOfTraining).year() + 543);
+            const formattedDateCertificateEndDMY = (0, moment_1.default)(member.dateEndCertificate).format('DD/MM') + '/' + ((0, moment_1.default)(member.dateEndCertificate).year() + 543);
+            // สร้าง HTML จาก template + ข้อมูล member
+            const html = ejs_1.default.render(templateStr, {
+                member: Object.assign(Object.assign({}, member), { logoBase64,
+                    certificateDetail_1,
+                    certificateDetail_2,
+                    formattedDateCertificate,
+                    formattedDateCertificateDMY,
+                    formattedDateCertificateEndDMY })
+            });
+            // สั่ง Puppeteer เปิดหน้า HTML นี้
+            const browser = yield puppeteer_1.default.launch();
+            const page = yield browser.newPage();
+            // แทนที่จะโหลดไฟล์ผ่าน URL ให้ใช้ setContent() ใส่ HTML ลงไปเลย
+            yield page.setContent(html, { waitUntil: 'networkidle0' });
+            // สร้าง PDF
+            const pdfBuffer = yield page.pdf({
+                format: 'A4',
+                printBackground: true,
+            });
+            yield browser.close();
+            return pdfBuffer;
+        }
+        catch (error) {
+            console.error('❌ PDF generation error:', error);
+            throw error; // ให้ Express จัดการส่ง 500 กลับไป
+        }
     });
 }

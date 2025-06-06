@@ -18,18 +18,23 @@ const report_controller_1 = require("./report.controller");
 const tools_1 = require("../utils/tools");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const date_fns_1 = require("date-fns");
+const moment_1 = __importDefault(require("moment"));
 const getMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const search = req.query.search || "";
         const companyId = req.query.companyId || "";
-        const where = Object.assign(Object.assign({}, (search && {
-            OR: [
-                { fname: { contains: search, mode: 'insensitive' } },
-                { lname: { contains: search, mode: 'insensitive' } },
-                { idCard: { contains: search, mode: 'insensitive' } },
-            ]
+        const terms = (search === null || search === void 0 ? void 0 : search.split(/\s+/).filter(Boolean)) || [];
+        const where = Object.assign(Object.assign({}, (terms.length > 0 && {
+            AND: terms.map(item => ({
+                OR: [
+                    { titleName: { contains: item, mode: 'insensitive' } },
+                    { fname: { contains: item, mode: 'insensitive' } },
+                    { lname: { contains: item, mode: 'insensitive' } },
+                    { idCard: { contains: item, mode: 'insensitive' } },
+                ]
+            }))
         })), (companyId && {
             companyId: parseInt(companyId)
         }));
@@ -105,7 +110,8 @@ exports.createMember = createMember;
 const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const id = parseInt(req.params.id);
-        const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body;
+        const { titleName, fname, lname, idCard, idCardType, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body;
+        console.log(req.body);
         if (!id || !idCard)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
         // Check รหัสบัตรประชาชนซ้ำ
@@ -136,6 +142,7 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             fname,
             lname,
             idCard,
+            idCardType,
             phone,
             email,
             companyId: Number(companyId),
@@ -197,7 +204,12 @@ const certificatePDF = (req, res) => __awaiter(void 0, void 0, void 0, function*
         if (!idCard)
             return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" });
         const member = yield db_1.default.member.findUnique({
-            where: { idCard }
+            where: { idCard },
+            include: {
+                company: { select: { name: true } },
+                location: { select: { name: true } },
+                lecturer: { select: { name: true } }
+            }
         });
         if (!member)
             return res.status(404).json({ message: "ไม่พบสามาชิกท่านนี้ !" });
@@ -219,7 +231,14 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
     try {
         const { idCard } = req.body;
         console.log({ idCard });
-        const member = yield db_1.default.member.findUnique({ where: { idCard } });
+        const member = yield db_1.default.member.findUnique({
+            where: { idCard },
+            include: {
+                company: { select: { name: true } },
+                location: { select: { name: true } },
+                lecturer: { select: { name: true } }
+            }
+        });
         if (!member)
             return res.status(404).json({ message: 'Member not found' });
         if (member && member.statusQuestionEnd !== 1)
@@ -234,11 +253,18 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
         });
         const pdfBytes = yield (0, tools_1.generatePdf)(member);
         const namePDF = `certificate_${idCard}.pdf`;
+        const formattedDateCertificateDMY = (0, moment_1.default)(member.dateOfTraining).format('DD/MM') + '/' + ((0, moment_1.default)(member.dateOfTraining).year() + 543);
+        const formattedDateCertificateEndDMY = (0, moment_1.default)(member.dateEndCertificate).format('DD/MM') + '/' + ((0, moment_1.default)(member.dateEndCertificate).year() + 543);
+        const text = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
+        รหัสบัตรประชาชน : ${member.idCard}
+        วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
+        วันที่ได้ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
+        โปรดดูใบรับรองของคุณที่แนบมา`;
         yield transporter.sendMail({
             from: `"Thai Business Mate" <${process.env.EMAIL_USER}>`,
             to: member.email,
             subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
-            text: `ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} , โปรดดูใบรับรองของคุณที่แนบมา`,
+            text: text,
             attachments: [
                 {
                     filename: namePDF,

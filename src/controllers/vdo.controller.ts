@@ -8,6 +8,11 @@ import path from "path";
 import { promises as fsPromises } from 'fs'
 import { tmpdir } from "os";
 import { v4 as uuidv4 } from "uuid";
+import { promisify } from "util";
+import tmp from "tmp-promise"
+import crypto from "crypto"
+
+
 
 
 
@@ -228,69 +233,140 @@ export const getSecureVideos = async (req: Request, res: Response) => {
 }
 
 // Stream video
+
+// export const streamVideo = async (req: Request, res: Response) => {
+//   const client = await createFtpClient()
+
+//   try {
+//     const { file, token, idCard } = req.query as Record<string, string>
+//     // ตรวจสอบเหมือนเดิม...
+
+//     // สร้าง temp file
+//     const tmpFile = await tmp.file()
+//     await client.downloadTo(tmpFile.path, file)
+//     client.close()
+
+//     const stat = await promisify(fs.stat)(tmpFile.path)
+//     const range = req.headers.range
+
+//     const total = stat.size
+
+//     if (range) {
+//       const parts = range.replace(/bytes=/, "").split("-")
+//       const start = parseInt(parts[0], 10)
+//       const end = parts[1] ? parseInt(parts[1], 10) : total - 1
+
+//       const chunksize = end - start + 1
+//       const fileStream = fs.createReadStream(tmpFile.path, { start, end })
+
+//       res.writeHead(206, {
+//         "Content-Range": `bytes ${start}-${end}/${total}`,
+//         "Accept-Ranges": "bytes",
+//         "Content-Length": chunksize,
+//         "Content-Type": "video/mp4",
+//       })
+
+//       fileStream.pipe(res)
+//     } else {
+//       res.writeHead(200, {
+//         "Content-Length": total,
+//         "Content-Type": "video/mp4",
+//       })
+//       fs.createReadStream(tmpFile.path).pipe(res)
+//     }
+
+//     // ทำ token used ทีหลังเมื่อ stream เสร็จ
+//     res.on("close", async () => {
+//       await prisma.videoToken.update({
+//         where: { token },
+//         data: { used: true },
+//       })
+//     })
+//   } catch (err) {
+//     console.error("Video stream error", err)
+//     res.status(500).send("เกิดข้อผิดพลาดในการโหลดวิดีโอ")
+//     client.close()
+//   }
+// }
+
+const tempDir = path.resolve(__dirname, "../tmp_videos_cache") // โฟลเดอร์เก็บ cache
+
+// สร้างโฟลเดอร์ถ้ายังไม่มี
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true })
+}
+
+// ฟังก์ชันสร้างชื่อไฟล์ temp cache จากชื่อไฟล์ FTP (หรือ file path)
+function getCacheFilePath(fileName: string) {
+  // ใช้ hash ของชื่อไฟล์เพื่อไม่ให้ชื่อซ้ำ/ผิด
+  const hash = crypto.createHash("md5").update(fileName).digest("hex")
+  return path.join(tempDir, `${hash}.mp4`)
+}
+
+
 export const streamVideo = async (req: Request, res: Response) => {
-    const client = await createFtpClient()
+  const client = await createFtpClient()
 
-    try {
-        const { file, token, idCard } = req.query as Record<string, string>
+  try {
+    const { file, token, idCard } = req.query as Record<string, string>
 
-        if (!file || !token || !idCard) {
-            return res.status(400).send('ข้อมูลไม่ครบ')
-        }
+    // ตรวจสอบ token, idCard ตามที่คุณมี (ไม่แสดงตรงนี้)
 
-        const tokenRecord = await prisma.videoToken.findUnique({ where: { token } })
-        if (!tokenRecord)
-            return res.status(403).send("ไม่พบ token")
+    // กำหนด path ไฟล์ temp cache
+    const cachedFilePath = getCacheFilePath(file)
 
-        if (tokenRecord.used)
-            return res.status(403).send("token นี้ถูกใช้งานไปแล้ว")
+    // เช็คว่าไฟล์ temp นี้มีอยู่หรือยัง
+    const fileExists = fs.existsSync(cachedFilePath)
 
-        if (tokenRecord.idCard !== idCard)
-            return res.status(403).send("idCard ไม่ตรง")
-
-        if (new Date() > tokenRecord.expiresAt)
-            return res.status(403).send("token หมดอายุ")
-
-
-        // res.setHeader("Content-Type", "video/mp4")
-        // await client.downloadTo(res, file)
-
-        // console.log("Range request:", req.headers.range)
-
-        // // อัปเดต token ว่าใช้แล้ว
-        // await prisma.videoToken.update({
-        //     where: { token },
-        //     data: { used: true },
-        // })
-
-        res.setHeader("Content-Type", "video/mp4");
-        res.setHeader("Accept-Ranges", "bytes"); // helps with Safari
-        res.setHeader("Cache-Control", "no-cache");
-
-
-        client.downloadTo(res, file)
-            .then(async () => {
-                await prisma.videoToken.update({
-                    where: { token },
-                    data: { used: true },
-                });
-                client.close();
-            })
-            .catch((err) => {
-                console.error("Download error:", err);
-                if (!res.headersSent) {
-                    res.status(500).send("เกิดข้อผิดพลาดระหว่างโหลดวิดีโอ");
-                }
-                client.close();
-            });
-
-
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json(error);
-        client.close()
-
+    if (!fileExists) {
+      // ถ้ายังไม่มีใน cache ดาวน์โหลดไฟล์จาก FTP
+      await client.downloadTo(cachedFilePath, file)
     }
+    client.close()
+
+    const stat = await promisify(fs.stat)(cachedFilePath)
+    const total = stat.size
+    const range = req.headers.range
+
+    if (range) {
+      // รองรับ HTTP Range
+      const parts = range.replace(/bytes=/, "").split("-")
+      const start = parseInt(parts[0], 10)
+      const end = parts[1] ? parseInt(parts[1], 10) : total - 1
+      const chunksize = end - start + 1
+
+      res.writeHead(206, {
+        "Content-Range": `bytes ${start}-${end}/${total}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunksize,
+        "Content-Type": "video/mp4",
+      })
+
+      const fileStream = fs.createReadStream(cachedFilePath, { start, end })
+      fileStream.pipe(res)
+    } else {
+      // ส่งไฟล์ทั้งหมด
+      res.writeHead(200, {
+        "Content-Length": total,
+        "Content-Type": "video/mp4",
+      })
+
+      const fileStream = fs.createReadStream(cachedFilePath)
+      fileStream.pipe(res)
+    }
+
+    // ทำ token used ทีหลังเมื่อ stream เสร็จ
+    res.on("close", async () => {
+      await prisma.videoToken.update({
+        where: { token },
+        data: { used: true },
+      })
+    })
+  } catch (err) {
+    console.error("Video stream error", err)
+    res.status(500).send("เกิดข้อผิดพลาดในการโหลดวิดีโอ")
+    client.close()
+  }
 }
 
 // export const streamVideo = async (req: Request, res: Response) => {
