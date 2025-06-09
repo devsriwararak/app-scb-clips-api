@@ -200,7 +200,7 @@ export const deleteVideo = async (req: Request, res: Response) => {
 export const getSecureVideos = async (req: Request, res: Response) => {
     try {
         const idCard = req.body.idCard as string;
-        if (!idCard || idCard.length !== 13) {
+        if (!idCard || (idCard.length !== 13 && idCard.length !== 8)) {
             return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" })
         }
         // Check idCard
