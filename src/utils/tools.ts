@@ -7,6 +7,7 @@ import ejs from 'ejs';
 import moment from 'moment';
 import 'moment/locale/th';
 moment.locale('th'); // ตั้งให้ใช้ภาษาไทย
+const NODE_ENV = process.env.NODE_ENV
 
 
 export const sanitizeFilename = (filename: string) => {
@@ -146,7 +147,24 @@ export async function generatePdf(member: any) {
         });
 
         // สั่ง Puppeteer เปิดหน้า HTML นี้
-        const browser = await puppeteer.launch();
+
+
+        let browser = null
+        if (NODE_ENV === 'devloper') {
+            browser = await puppeteer.launch();
+        } 
+        else if (NODE_ENV === "production") {
+            browser = await puppeteer.launch({
+                executablePath: '/usr/bin/chromium-browser',  // หรือ path ที่ติดตั้งจริง ๆ
+                args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                headless: true,
+            });
+        }
+
+        if (!browser) {
+            throw new Error("Puppeteer browser is not initialized. Check NODE_ENV value.");
+        }
+
         const page = await browser.newPage();
 
         // แทนที่จะโหลดไฟล์ผ่าน URL ให้ใช้ setContent() ใส่ HTML ลงไปเลย
