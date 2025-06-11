@@ -6,7 +6,7 @@ import { Prisma } from "@prisma/client"
 export const getCompanys = async (req: Request, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1
-        const limit = parseInt(req.query.limit as string) || 5
+        const limit = parseInt(req.query.limit as string) || 8
         const search = (req.query.search as string) || ""
 
         const where: Prisma.CompanyWhereInput = search

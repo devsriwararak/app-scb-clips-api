@@ -20,7 +20,7 @@ import crypto from "crypto"
 export const getAllVideos = async (req: Request, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1
-        const limit = parseInt(req.query.limit as string) || 5
+        const limit = parseInt(req.query.limit as string) || 8
         const search = (req.query.search as string) || ""
 
         const where: Prisma.VideoWhereInput = search
@@ -38,7 +38,7 @@ export const getAllVideos = async (req: Request, res: Response) => {
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: {
-                    createdAt: 'desc'
+                    createdAt: 'asc'
                 }
             }),
             prisma.video.count({ where })
@@ -209,7 +209,7 @@ export const getSecureVideos = async (req: Request, res: Response) => {
 
         // load video
         const videos = await prisma.video.findMany({
-            orderBy: { createdAt: "desc" }
+            orderBy: { createdAt: "asc" }
         })
 
         const result = await Promise.all(

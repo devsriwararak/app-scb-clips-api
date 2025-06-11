@@ -150,7 +150,7 @@ export async function generatePdf(member: any) {
 
 
         let browser = null
-        if (NODE_ENV === 'devloper') {
+        if (NODE_ENV === 'development') {
             browser = await puppeteer.launch();
         } 
         else if (NODE_ENV === "production") {
