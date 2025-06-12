@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken"
 import { asyncHandler } from "../utils/asyncHandler";
 import { checkExpiredCertificates } from "../utils/tools";
 
-const JWT_SECRET = process.env.JWT_SECRET || ""
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET!;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
 

@@ -3,7 +3,7 @@ import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
 import fs from "fs";
 import { createFtpClient } from "../config/ftpClient";
-import { generateSecureToken, generateToken, sanitizeFilename } from "../utils/tools";
+import { decrypt, generateSecureToken, generateToken, sanitizeFilename } from "../utils/tools";
 import path from "path";
 import { promises as fsPromises } from 'fs'
 import { tmpdir } from "os";
@@ -200,11 +200,16 @@ export const deleteVideo = async (req: Request, res: Response) => {
 export const getSecureVideos = async (req: Request, res: Response) => {
     try {
         const idCard = req.body.idCard as string;
-        if (!idCard || (idCard.length !== 13 && idCard.length !== 8)) {
-            return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" })
-        }
+        
+        // if (!idCard || (idCard.length !== 13 && idCard.length !== 8)) {
+        //     return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" })
+        // }
+
+        if(!idCard) return res.status(400).json({message : 'ส่งข้อมูลไม่ครบ'})
+        const idCardDecrypt = await decrypt(idCard)
+    
         // Check idCard
-        const checkIdCard = await prisma.member.findFirst({ where: { idCard } })
+        const checkIdCard = await prisma.member.findFirst({ where: { idCard: idCardDecrypt } })
         if (!checkIdCard) return res.status(403).json({ message: "ไม่มีสิทธิ์เข้าถึงวิดีโอ !!" })
 
         // load video
@@ -214,17 +219,18 @@ export const getSecureVideos = async (req: Request, res: Response) => {
 
         const result = await Promise.all(
             videos.map(async (video) => {
-                const token = await generateSecureToken(idCard, video.filePath)
+                const token = await generateSecureToken(idCardDecrypt, video.filePath)
                 return {
                     name: video.name,
-                    filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${idCard}`,
+                    filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${idCardDecrypt}`,
                     detail: video.detail,
-                    timeAdvert: video.timeAdvert
+                    timeAdvert: video.timeAdvert ,
+                    
                 }
             })
         )
 
-        return res.status(200).json({ data: result })
+        return res.status(200).json({ data: result, idCard : idCardDecrypt })
 
     } catch (error) {
         console.log(error);

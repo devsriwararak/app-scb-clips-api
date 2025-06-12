@@ -7,6 +7,7 @@ import ejs from 'ejs';
 import moment from 'moment';
 import 'moment/locale/th';
 moment.locale('th'); // ตั้งให้ใช้ภาษาไทย
+
 const NODE_ENV = process.env.NODE_ENV
 
 
@@ -152,7 +153,7 @@ export async function generatePdf(member: any) {
         let browser = null
         if (NODE_ENV === 'development') {
             browser = await puppeteer.launch();
-        } 
+        }
         else if (NODE_ENV === "production") {
             browser = await puppeteer.launch({
                 executablePath: '/usr/bin/chromium-browser',  // หรือ path ที่ติดตั้งจริง ๆ
@@ -183,4 +184,32 @@ export async function generatePdf(member: any) {
         console.error('❌ PDF generation error:', error);
         throw error; // ให้ Express จัดการส่ง 500 กลับไป
     }
+}
+
+
+const algorithm = 'aes-256-cbc';
+const secretKey = process.env.ENCRYPT_SECRET_KEY || '';
+const iv = crypto.randomBytes(16);
+
+export const encrypt = async (text: string) => {
+    const cipher = crypto.createCipheriv(algorithm, Buffer.from(secretKey!, 'hex'), iv)
+    let encrypted = cipher.update(text, 'utf8', 'hex')
+    encrypted += cipher.final('hex')
+    return iv.toString('hex') + ':' + encrypted
+
+}
+
+export const decrypt = async (text: string) => {
+    console.log(text);
+    const decodedText = decodeURIComponent(text);
+    const [ivHex, encrypted] = decodedText.split(':');
+
+    if (!ivHex || !encrypted) {
+        throw new Error('Invalid encrypted text format');
+    }
+    const iv = Buffer.from(ivHex, 'hex');
+    const decipher = crypto.createDecipheriv(algorithm, Buffer.from(secretKey!, 'hex'), iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted
 }

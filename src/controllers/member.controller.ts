@@ -3,11 +3,11 @@ import { Request, Response } from "express";
 import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
 import { createMemberChangeCompany } from "./report.controller";
-import { generatePdf } from "../utils/tools";
+import { encrypt, generatePdf } from "../utils/tools";
 import nodemailer from 'nodemailer'
 import { addYears } from 'date-fns'
 import moment from "moment";
-
+import jwt from "jsonwebtoken"
 
 
 export const getMembers = async (req: Request, res: Response) => {
@@ -203,7 +203,13 @@ export const checkIdCard = async (req: Request, res: Response) => {
 
         if (!result?.idCard) return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" })
 
-        return res.status(200).json(result)
+        const encrypted = await encrypt(result.idCard);
+        const data = {
+            idCard : encrypted , 
+            dateOfTraining : result.dateOfTraining
+        }  
+
+        return res.status(200).json(data)
 
     } catch (error) {
         console.log(error);
@@ -278,7 +284,7 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
         const text = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
         รหัสบัตรประชาชน : ${member.idCard}
         วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
-        วันที่ได้ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
+        ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
         โปรดดูใบรับรองของคุณที่แนบมา`
 
         await transporter.sendMail({
