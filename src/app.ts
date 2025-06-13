@@ -20,7 +20,7 @@ dotenv.config()
 const app = express()
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.1.107:3000','https://app-scgp.thaibusinessmate.com'],
     credentials: true
 }))
 app.use(express.json())

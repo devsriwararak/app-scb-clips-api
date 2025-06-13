@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
+import { decrypt, encrypt } from "../utils/tools";
 
 // GET ALL
 export const getQuestionsEnd = async (req: Request, res: Response) => {
@@ -199,8 +200,10 @@ export const deleteQuestionEnd = async (req: Request, res: Response) => {
 export const EndQuestionUpdateStatus = async (req: Request, res: Response) => {
     try {
         const { idCard } = req.body
-        console.log({ idCard });
-        await prisma.member.update({ data: { statusQuestionEnd: 1 }, where: { idCard } })
+        if(!idCard) return res.status(400).json({message : "no idCard"})
+        const idCardEncrypt = await decrypt(idCard)
+       
+        await prisma.member.update({ data: { statusQuestionEnd: 1 }, where: { idCard:idCardEncrypt } })
 
         return res.status(200).json({ message: 'success' })
 

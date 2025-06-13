@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
 import { createMemberChangeCompany } from "./report.controller";
-import { encrypt, generatePdf } from "../utils/tools";
+import { decrypt, encrypt, generatePdf } from "../utils/tools";
 import nodemailer from 'nodemailer'
 import { addYears } from 'date-fns'
 import moment from "moment";
@@ -17,7 +17,7 @@ export const getMembers = async (req: Request, res: Response) => {
         const search = (req.query.search as string) || ""
         const companyId = (req.query.companyId as string) || ""
         const terms = search?.split(/\s+/).filter(Boolean) || []
-    
+
 
         const where: Prisma.MemberWhereInput = {
             ...(terms.length > 0 && {
@@ -105,7 +105,8 @@ export const createMember = async (req: Request, res: Response) => {
                 dateOfTraining
             }
         })
-        res.status(201).json({ result, message: "ทำรายการสำเร็จ" })
+        const idCardEncrypt = await encrypt(idCard)
+        res.status(201).json({ result, message: "ทำรายการสำเร็จ", idCard: idCardEncrypt })
 
     } catch (error) {
         console.log(error);
@@ -194,20 +195,36 @@ export const deleteMember = async (req: Request, res: Response) => {
 export const checkIdCard = async (req: Request, res: Response) => {
     try {
         const { idCard } = req.body
+        let statusEncrypt = false
+        const idCardLength = idCard.length
+        let useIdCard = idCard
+
+        console.log('idCardLength :', idCardLength);
 
         if (!idCard) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
+        if (idCardLength > 13) statusEncrypt = true
+        if (statusEncrypt === true) {
+            const decipher = await decrypt(idCard)
+            useIdCard = decipher
+        }
+
         const result = await prisma.member.findFirst({
-            where: { idCard }
+            where: { idCard: useIdCard }
         })
 
         if (!result?.idCard) return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" })
 
-        const encrypted = await encrypt(result.idCard);
+        if (statusEncrypt == false) {
+            const encrypted = await encrypt(result.idCard);
+            useIdCard = encrypted
+        }
+
+
         const data = {
-            idCard : encrypted , 
-            dateOfTraining : result.dateOfTraining
-        }  
+            idCard: useIdCard,
+            dateOfTraining: result.dateOfTraining
+        }
 
         return res.status(200).json(data)
 
@@ -225,9 +242,17 @@ export const certificatePDF = async (req: Request, res: Response) => {
         const { idCard } = req.body
 
         if (!idCard) return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" })
+        const idCardLength = idCard.length
+        let useIdCard = idCard
+
+        if (idCardLength > 13) {
+            const decipher = await decrypt(idCard)
+            useIdCard = decipher
+        }
+
 
         const member = await prisma.member.findUnique({
-            where: { idCard },
+            where: { idCard: useIdCard },
             include: {
                 company: { select: { name: true } },
                 location: { select: { name: true } },
@@ -254,9 +279,19 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
     try {
         const { idCard } = req.body
         console.log({ idCard });
+        if (!idCard) return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" })
+
+        const idCardLength = idCard.length
+        let useIdCard = idCard
+
+        if (idCardLength > 13) {
+            const decipher = await decrypt(idCard)
+            useIdCard = decipher
+        }
+
 
         const member = await prisma.member.findUnique({
-            where: { idCard },
+            where: { idCard: useIdCard },
             include: {
                 company: { select: { name: true } },
                 location: { select: { name: true } },
@@ -303,7 +338,7 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
 
         // บันทึก DB
         await prisma.member.update({
-            where: { idCard },
+            where: { idCard: useIdCard },
             data: {
                 dateEndCertificate: addYears(new Date(), 2)
             }

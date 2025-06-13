@@ -3,7 +3,7 @@ import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
 import fs from "fs";
 import { createFtpClient } from "../config/ftpClient";
-import { decrypt, generateSecureToken, generateToken, sanitizeFilename } from "../utils/tools";
+import { decrypt, encrypt, generateSecureToken, generateToken, sanitizeFilename } from "../utils/tools";
 import path from "path";
 import { promises as fsPromises } from 'fs'
 import { tmpdir } from "os";
@@ -11,9 +11,6 @@ import { v4 as uuidv4 } from "uuid";
 import { promisify } from "util";
 import tmp from "tmp-promise"
 import crypto from "crypto"
-
-
-
 
 
 
@@ -200,16 +197,25 @@ export const deleteVideo = async (req: Request, res: Response) => {
 export const getSecureVideos = async (req: Request, res: Response) => {
     try {
         const idCard = req.body.idCard as string;
-        
+        const idCardLength = idCard.length
+        let useIdCard = idCard
+
         // if (!idCard || (idCard.length !== 13 && idCard.length !== 8)) {
         //     return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" })
         // }
 
-        if(!idCard) return res.status(400).json({message : 'ส่งข้อมูลไม่ครบ'})
-        const idCardDecrypt = await decrypt(idCard)
-    
+        if (!idCard) return res.status(400).json({ message: 'ส่งข้อมูลไม่ครบ' })
+
+        if (idCardLength > 13) {
+            const decipher = await decrypt(idCard)
+            useIdCard = decipher
+        } else if(idCardLength <= 13){
+            const decipher = await encrypt(idCard)
+            useIdCard = decipher
+        }
+
         // Check idCard
-        const checkIdCard = await prisma.member.findFirst({ where: { idCard: idCardDecrypt } })
+        const checkIdCard = await prisma.member.findFirst({ where: { idCard: useIdCard } })
         if (!checkIdCard) return res.status(403).json({ message: "ไม่มีสิทธิ์เข้าถึงวิดีโอ !!" })
 
         // load video
@@ -219,18 +225,18 @@ export const getSecureVideos = async (req: Request, res: Response) => {
 
         const result = await Promise.all(
             videos.map(async (video) => {
-                const token = await generateSecureToken(idCardDecrypt, video.filePath)
+                const token = await generateSecureToken(useIdCard, video.filePath)
                 return {
                     name: video.name,
-                    filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${idCardDecrypt}`,
+                    filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${useIdCard}`,
                     detail: video.detail,
-                    timeAdvert: video.timeAdvert ,
-                    
+                    timeAdvert: video.timeAdvert,
+
                 }
             })
         )
 
-        return res.status(200).json({ data: result, idCard : idCardDecrypt })
+        return res.status(200).json({ data: result, idCard: useIdCard })
 
     } catch (error) {
         console.log(error);
@@ -299,80 +305,80 @@ const tempDir = path.resolve(__dirname, "../tmp_videos_cache") // โฟลเ�
 
 // สร้างโฟลเดอร์ถ้ายังไม่มี
 if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true })
+    fs.mkdirSync(tempDir, { recursive: true })
 }
 
 // ฟังก์ชันสร้างชื่อไฟล์ temp cache จากชื่อไฟล์ FTP (หรือ file path)
 function getCacheFilePath(fileName: string) {
-  // ใช้ hash ของชื่อไฟล์เพื่อไม่ให้ชื่อซ้ำ/ผิด
-  const hash = crypto.createHash("md5").update(fileName).digest("hex")
-  return path.join(tempDir, `${hash}.mp4`)
+    // ใช้ hash ของชื่อไฟล์เพื่อไม่ให้ชื่อซ้ำ/ผิด
+    const hash = crypto.createHash("md5").update(fileName).digest("hex")
+    return path.join(tempDir, `${hash}.mp4`)
 }
 
 
 export const streamVideo = async (req: Request, res: Response) => {
-  const client = await createFtpClient()
+    const client = await createFtpClient()
 
-  try {
-    const { file, token, idCard } = req.query as Record<string, string>
+    try {
+        const { file, token, idCard } = req.query as Record<string, string>
 
-    // ตรวจสอบ token, idCard ตามที่คุณมี (ไม่แสดงตรงนี้)
+        // ตรวจสอบ token, idCard ตามที่คุณมี (ไม่แสดงตรงนี้)
 
-    // กำหนด path ไฟล์ temp cache
-    const cachedFilePath = getCacheFilePath(file)
+        // กำหนด path ไฟล์ temp cache
+        const cachedFilePath = getCacheFilePath(file)
 
-    // เช็คว่าไฟล์ temp นี้มีอยู่หรือยัง
-    const fileExists = fs.existsSync(cachedFilePath)
+        // เช็คว่าไฟล์ temp นี้มีอยู่หรือยัง
+        const fileExists = fs.existsSync(cachedFilePath)
 
-    if (!fileExists) {
-      // ถ้ายังไม่มีใน cache ดาวน์โหลดไฟล์จาก FTP
-      await client.downloadTo(cachedFilePath, file)
+        if (!fileExists) {
+            // ถ้ายังไม่มีใน cache ดาวน์โหลดไฟล์จาก FTP
+            await client.downloadTo(cachedFilePath, file)
+        }
+        client.close()
+
+        const stat = await promisify(fs.stat)(cachedFilePath)
+        const total = stat.size
+        const range = req.headers.range
+
+        if (range) {
+            // รองรับ HTTP Range
+            const parts = range.replace(/bytes=/, "").split("-")
+            const start = parseInt(parts[0], 10)
+            const end = parts[1] ? parseInt(parts[1], 10) : total - 1
+            const chunksize = end - start + 1
+
+            res.writeHead(206, {
+                "Content-Range": `bytes ${start}-${end}/${total}`,
+                "Accept-Ranges": "bytes",
+                "Content-Length": chunksize,
+                "Content-Type": "video/mp4",
+            })
+
+            const fileStream = fs.createReadStream(cachedFilePath, { start, end })
+            fileStream.pipe(res)
+        } else {
+            // ส่งไฟล์ทั้งหมด
+            res.writeHead(200, {
+                "Content-Length": total,
+                "Content-Type": "video/mp4",
+            })
+
+            const fileStream = fs.createReadStream(cachedFilePath)
+            fileStream.pipe(res)
+        }
+
+        // ทำ token used ทีหลังเมื่อ stream เสร็จ
+        res.on("close", async () => {
+            await prisma.videoToken.update({
+                where: { token },
+                data: { used: true },
+            })
+        })
+    } catch (err) {
+        console.error("Video stream error", err)
+        res.status(500).send("เกิดข้อผิดพลาดในการโหลดวิดีโอ")
+        client.close()
     }
-    client.close()
-
-    const stat = await promisify(fs.stat)(cachedFilePath)
-    const total = stat.size
-    const range = req.headers.range
-
-    if (range) {
-      // รองรับ HTTP Range
-      const parts = range.replace(/bytes=/, "").split("-")
-      const start = parseInt(parts[0], 10)
-      const end = parts[1] ? parseInt(parts[1], 10) : total - 1
-      const chunksize = end - start + 1
-
-      res.writeHead(206, {
-        "Content-Range": `bytes ${start}-${end}/${total}`,
-        "Accept-Ranges": "bytes",
-        "Content-Length": chunksize,
-        "Content-Type": "video/mp4",
-      })
-
-      const fileStream = fs.createReadStream(cachedFilePath, { start, end })
-      fileStream.pipe(res)
-    } else {
-      // ส่งไฟล์ทั้งหมด
-      res.writeHead(200, {
-        "Content-Length": total,
-        "Content-Type": "video/mp4",
-      })
-
-      const fileStream = fs.createReadStream(cachedFilePath)
-      fileStream.pipe(res)
-    }
-
-    // ทำ token used ทีหลังเมื่อ stream เสร็จ
-    res.on("close", async () => {
-      await prisma.videoToken.update({
-        where: { token },
-        data: { used: true },
-      })
-    })
-  } catch (err) {
-    console.error("Video stream error", err)
-    res.status(500).send("เกิดข้อผิดพลาดในการโหลดวิดีโอ")
-    client.close()
-  }
 }
 
 // export const streamVideo = async (req: Request, res: Response) => {
@@ -449,7 +455,10 @@ export const EndStreamVideo = async (req: Request, res: Response) => {
     try {
         const { idCard } = req.body
         console.log({ idCard });
-        await prisma.member.update({ data: { statusVideoEnd: 1 }, where: { idCard } })
+        if (!idCard) return res.status(400).json({ message: "no idCard" })
+
+        const decipher = await decrypt(idCard)
+        await prisma.member.update({ data: { statusVideoEnd: 1 }, where: { idCard: decipher } })
 
         return res.status(200).json({ message: 'success' })
 
