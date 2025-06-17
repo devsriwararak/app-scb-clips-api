@@ -22,7 +22,7 @@ const moment_1 = __importDefault(require("moment"));
 const getMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
+        const limit = parseInt(req.query.limit) || 8;
         const search = req.query.search || "";
         const companyId = req.query.companyId || "";
         const terms = (search === null || search === void 0 ? void 0 : search.split(/\s+/).filter(Boolean)) || [];
@@ -98,7 +98,8 @@ const createMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 dateOfTraining
             }
         });
-        res.status(201).json({ result, message: "ทำรายการสำเร็จ" });
+        const idCardEncrypt = yield (0, tools_1.encrypt)(idCard);
+        res.status(201).json({ result, message: "ทำรายการสำเร็จ", idCard: idCardEncrypt });
     }
     catch (error) {
         console.log(error);
@@ -181,14 +182,32 @@ exports.deleteMember = deleteMember;
 const checkIdCard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { idCard } = req.body;
+        let statusEncrypt = false;
+        const idCardLength = idCard.length;
+        let useIdCard = idCard;
+        console.log('idCardLength :', idCardLength);
         if (!idCard)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
+        if (idCardLength > 13)
+            statusEncrypt = true;
+        if (statusEncrypt === true) {
+            const decipher = yield (0, tools_1.decrypt)(idCard);
+            useIdCard = decipher;
+        }
         const result = yield db_1.default.member.findFirst({
-            where: { idCard }
+            where: { idCard: useIdCard }
         });
         if (!(result === null || result === void 0 ? void 0 : result.idCard))
             return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" });
-        return res.status(200).json(result);
+        if (statusEncrypt == false) {
+            const encrypted = yield (0, tools_1.encrypt)(result.idCard);
+            useIdCard = encrypted;
+        }
+        const data = {
+            idCard: useIdCard,
+            dateOfTraining: result.dateOfTraining
+        };
+        return res.status(200).json(data);
     }
     catch (error) {
         console.log(error);
@@ -203,8 +222,14 @@ const certificatePDF = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const { idCard } = req.body;
         if (!idCard)
             return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" });
+        const idCardLength = idCard.length;
+        let useIdCard = idCard;
+        if (idCardLength > 13) {
+            const decipher = yield (0, tools_1.decrypt)(idCard);
+            useIdCard = decipher;
+        }
         const member = yield db_1.default.member.findUnique({
-            where: { idCard },
+            where: { idCard: useIdCard },
             include: {
                 company: { select: { name: true } },
                 location: { select: { name: true } },
@@ -228,11 +253,20 @@ const certificatePDF = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.certificatePDF = certificatePDF;
 const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const { idCard } = req.body;
         console.log({ idCard });
+        if (!idCard)
+            return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" });
+        const idCardLength = idCard.length;
+        let useIdCard = idCard;
+        if (idCardLength > 13) {
+            const decipher = yield (0, tools_1.decrypt)(idCard);
+            useIdCard = decipher;
+        }
         const member = yield db_1.default.member.findUnique({
-            where: { idCard },
+            where: { idCard: useIdCard },
             include: {
                 company: { select: { name: true } },
                 location: { select: { name: true } },
@@ -258,11 +292,11 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
         const text = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
         รหัสบัตรประชาชน : ${member.idCard}
         วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
-        วันที่ได้ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
+        ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
         โปรดดูใบรับรองของคุณที่แนบมา`;
         yield transporter.sendMail({
             from: `"Thai Business Mate" <${process.env.EMAIL_USER}>`,
-            to: member.email,
+            to: (_a = member.email) !== null && _a !== void 0 ? _a : "",
             subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
             text: text,
             attachments: [
@@ -275,7 +309,7 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
         });
         // บันทึก DB
         yield db_1.default.member.update({
-            where: { idCard },
+            where: { idCard: useIdCard },
             data: {
                 dateEndCertificate: (0, date_fns_1.addYears)(new Date(), 2)
             }

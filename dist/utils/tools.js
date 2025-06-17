@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkExpiredCertificates = exports.generateSecureToken = exports.generateToken = exports.expiresAt = exports.sanitizeFilename = void 0;
+exports.decrypt = exports.encrypt = exports.checkExpiredCertificates = exports.generateSecureToken = exports.generateToken = exports.expiresAt = exports.sanitizeFilename = void 0;
 exports.generatePdf = generatePdf;
 const crypto_1 = __importDefault(require("crypto"));
 const db_1 = __importDefault(require("../config/db"));
@@ -23,6 +23,7 @@ const ejs_1 = __importDefault(require("ejs"));
 const moment_1 = __importDefault(require("moment"));
 require("moment/locale/th");
 moment_1.default.locale('th'); // ตั้งให้ใช้ภาษาไทย
+const NODE_ENV = process.env.NODE_ENV;
 const sanitizeFilename = (filename) => {
     return filename.replace(/[^a-zA-Z0-9_.-]/g, "_");
 };
@@ -139,7 +140,20 @@ function generatePdf(member) {
                     formattedDateCertificateEndDMY })
             });
             // สั่ง Puppeteer เปิดหน้า HTML นี้
-            const browser = yield puppeteer_1.default.launch();
+            let browser = null;
+            if (NODE_ENV === 'development') {
+                browser = yield puppeteer_1.default.launch();
+            }
+            else if (NODE_ENV === "production") {
+                browser = yield puppeteer_1.default.launch({
+                    executablePath: '/usr/bin/chromium-browser', // หรือ path ที่ติดตั้งจริง ๆ
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                    headless: true,
+                });
+            }
+            if (!browser) {
+                throw new Error("Puppeteer browser is not initialized. Check NODE_ENV value.");
+            }
             const page = yield browser.newPage();
             // แทนที่จะโหลดไฟล์ผ่าน URL ให้ใช้ setContent() ใส่ HTML ลงไปเลย
             yield page.setContent(html, { waitUntil: 'networkidle0' });
@@ -157,3 +171,27 @@ function generatePdf(member) {
         }
     });
 }
+const algorithm = 'aes-256-cbc';
+const secretKey = process.env.ENCRYPT_SECRET_KEY || '';
+const iv = crypto_1.default.randomBytes(16);
+const encrypt = (text) => __awaiter(void 0, void 0, void 0, function* () {
+    const cipher = crypto_1.default.createCipheriv(algorithm, Buffer.from(secretKey, 'hex'), iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+});
+exports.encrypt = encrypt;
+const decrypt = (text) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(text);
+    const decodedText = decodeURIComponent(text);
+    const [ivHex, encrypted] = decodedText.split(':');
+    if (!ivHex || !encrypted) {
+        throw new Error('Invalid encrypted text format');
+    }
+    const iv = Buffer.from(ivHex, 'hex');
+    const decipher = crypto_1.default.createDecipheriv(algorithm, Buffer.from(secretKey, 'hex'), iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+});
+exports.decrypt = decrypt;

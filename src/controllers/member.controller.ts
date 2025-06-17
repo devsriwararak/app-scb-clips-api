@@ -324,7 +324,7 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
 
         await transporter.sendMail({
             from: `"Thai Business Mate" <${process.env.EMAIL_USER}>`,
-            to: member.email,
+            to: member.email ?? "",
             subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
             text: text,
             attachments: [

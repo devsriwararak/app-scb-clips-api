@@ -23,7 +23,7 @@ const crypto_1 = __importDefault(require("crypto"));
 const getAllVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
+        const limit = parseInt(req.query.limit) || 8;
         const search = req.query.search || "";
         const where = search
             ? {
@@ -39,7 +39,7 @@ const getAllVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: {
-                    createdAt: 'desc'
+                    createdAt: 'asc'
                 }
             }),
             db_1.default.video.count({ where })
@@ -181,27 +181,39 @@ exports.deleteVideo = deleteVideo;
 const getSecureVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const idCard = req.body.idCard;
-        if (!idCard || idCard.length !== 13) {
-            return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" });
+        const idCardLength = idCard.length;
+        let useIdCard = idCard;
+        // if (!idCard || (idCard.length !== 13 && idCard.length !== 8)) {
+        //     return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" })
+        // }
+        if (!idCard)
+            return res.status(400).json({ message: 'ส่งข้อมูลไม่ครบ' });
+        if (idCardLength > 13) {
+            const decipher = yield (0, tools_1.decrypt)(idCard);
+            useIdCard = decipher;
+        }
+        else if (idCardLength <= 13 || idCardLength <= 9) {
+            const decipher = yield (0, tools_1.encrypt)(idCard);
+            useIdCard = decipher;
         }
         // Check idCard
-        const checkIdCard = yield db_1.default.member.findFirst({ where: { idCard } });
+        const checkIdCard = yield db_1.default.member.findFirst({ where: { idCard: useIdCard } });
         if (!checkIdCard)
             return res.status(403).json({ message: "ไม่มีสิทธิ์เข้าถึงวิดีโอ !!" });
         // load video
         const videos = yield db_1.default.video.findMany({
-            orderBy: { createdAt: "desc" }
+            orderBy: { createdAt: "asc" }
         });
         const result = yield Promise.all(videos.map((video) => __awaiter(void 0, void 0, void 0, function* () {
-            const token = yield (0, tools_1.generateSecureToken)(idCard, video.filePath);
+            const token = yield (0, tools_1.generateSecureToken)(useIdCard, video.filePath);
             return {
                 name: video.name,
-                filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${idCard}`,
+                filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${useIdCard}`,
                 detail: video.detail,
-                timeAdvert: video.timeAdvert
+                timeAdvert: video.timeAdvert,
             };
         })));
-        return res.status(200).json({ data: result });
+        return res.status(200).json({ data: result, idCard: useIdCard });
     }
     catch (error) {
         console.log(error);
@@ -386,7 +398,10 @@ const EndStreamVideo = (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const { idCard } = req.body;
         console.log({ idCard });
-        yield db_1.default.member.update({ data: { statusVideoEnd: 1 }, where: { idCard } });
+        if (!idCard)
+            return res.status(400).json({ message: "no idCard" });
+        const decipher = yield (0, tools_1.decrypt)(idCard);
+        yield db_1.default.member.update({ data: { statusVideoEnd: 1 }, where: { idCard: decipher } });
         return res.status(200).json({ message: 'success' });
     }
     catch (error) {

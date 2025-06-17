@@ -14,11 +14,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EndQuestionUpdateStatus = exports.deleteQuestionEnd = exports.updateQuestionEnd = exports.createQuestionEnd = exports.getQuestionsEnd = void 0;
 const db_1 = __importDefault(require("../config/db"));
+const tools_1 = require("../utils/tools");
 // GET ALL
 const getQuestionsEnd = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
+        const limit = parseInt(req.query.limit) || 8;
         const search = req.query.search || "";
         const where = search
             ? {
@@ -197,8 +198,10 @@ exports.deleteQuestionEnd = deleteQuestionEnd;
 const EndQuestionUpdateStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { idCard } = req.body;
-        console.log({ idCard });
-        yield db_1.default.member.update({ data: { statusQuestionEnd: 1 }, where: { idCard } });
+        if (!idCard)
+            return res.status(400).json({ message: "no idCard" });
+        const idCardEncrypt = yield (0, tools_1.decrypt)(idCard);
+        yield db_1.default.member.update({ data: { statusQuestionEnd: 1 }, where: { idCard: idCardEncrypt } });
         return res.status(200).json({ message: 'success' });
     }
     catch (error) {

@@ -38,7 +38,7 @@ exports.createMemberChangeCompany = createMemberChangeCompany;
 const getMemberChageCompany = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
+        const limit = parseInt(req.query.limit) || 8;
         const search = req.query.search || "";
         const companyId = req.query.companyId || "";
         const where = Object.assign(Object.assign({}, (search && {

@@ -199,7 +199,7 @@ export const getSecureVideos = async (req: Request, res: Response) => {
         const idCard = req.body.idCard as string;
         const idCardLength = idCard.length
         let useIdCard = idCard
-
+     
         // if (!idCard || (idCard.length !== 13 && idCard.length !== 8)) {
         //     return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" })
         // }
@@ -209,7 +209,7 @@ export const getSecureVideos = async (req: Request, res: Response) => {
         if (idCardLength > 13) {
             const decipher = await decrypt(idCard)
             useIdCard = decipher
-        } else if(idCardLength <= 13){
+        } else if(idCardLength <= 13 || idCardLength <= 9){
             const decipher = await encrypt(idCard)
             useIdCard = decipher
         }
@@ -231,7 +231,6 @@ export const getSecureVideos = async (req: Request, res: Response) => {
                     filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${useIdCard}`,
                     detail: video.detail,
                     timeAdvert: video.timeAdvert,
-
                 }
             })
         )

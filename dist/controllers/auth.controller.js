@@ -17,7 +17,6 @@ const db_1 = __importDefault(require("../config/db"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const tools_1 = require("../utils/tools");
-const JWT_SECRET = process.env.JWT_SECRET || "";
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const generateAccessToken = (userId, role) => {

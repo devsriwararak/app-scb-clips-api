@@ -93,7 +93,7 @@ model Member {
   lname String
   idCard  String @unique
   idCardType Int @default(1)
-  email String @unique
+  email String? 
   phone String
   companyId Int
   company Company @relation(fields: [companyId],references: [id])
