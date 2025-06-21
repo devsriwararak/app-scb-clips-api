@@ -80,11 +80,8 @@ export const checkExpiredCertificates = async () => {
                 }
             })
         }
-
         return expiredIds.length;
-
-
-
+        
     } catch (error) {
         console.error('เกิดข้อผิดพลาด', error)
     }

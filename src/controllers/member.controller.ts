@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import prisma from "../config/db";
 import { Prisma } from "@prisma/client"
 import { createMemberChangeCompany } from "./report.controller";
-import { decrypt, encrypt, generatePdf } from "../utils/tools";
+import { checkExpiredCertificates, decrypt, encrypt, generatePdf } from "../utils/tools";
 import nodemailer from 'nodemailer'
 import { addYears } from 'date-fns'
 import moment from "moment";
@@ -353,5 +353,29 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
     }
 }
 
+
+export const certificateEnd = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.body
+        if (!id) return res.status(400).json({ message: 'ส่งข้อมูลไม่ครบ !' })
+        const dateNow = moment().startOf('day').toDate()
+        const dateYesterday = moment().subtract(1, 'days').startOf('day').toDate()
+
+        await prisma.member.update({
+            where: {id},
+            data: {
+                dateEndCertificate : dateNow,
+                dateOfTraining : dateYesterday,
+            }
+
+        })
+        await checkExpiredCertificates()
+
+        res.status(200).json({ message: 'ส่ง Email สำเร็จ !!' })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+}
 
 
