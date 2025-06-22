@@ -362,10 +362,10 @@ export const certificateEnd = async (req: Request, res: Response) => {
         const dateYesterday = moment().subtract(1, 'days').startOf('day').toDate()
 
         await prisma.member.update({
-            where: {id},
+            where: { id },
             data: {
-                dateEndCertificate : dateNow,
-                dateOfTraining : dateYesterday,
+                dateEndCertificate: dateNow,
+                dateOfTraining: dateYesterday,
             }
 
         })
@@ -379,3 +379,21 @@ export const certificateEnd = async (req: Request, res: Response) => {
 }
 
 
+// Users
+
+export const memberUpdateDateOfTraining = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params
+        const { dateOfTraining } = req.body
+
+        if (!id && !dateOfTraining) return res.status(400).json({ message: 'ส่งข้อมูลไม่ครบ' })
+
+        await prisma.member.update({ where: { idCard: id }, data: { dateOfTraining } })
+
+        res.status(200).json({ message: 'บันทึกสำเร็จ', idCard : id })
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+}
