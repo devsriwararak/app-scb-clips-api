@@ -125,6 +125,12 @@ export const deleteLocation = async(req:Request, res : Response)=> {
         const id = parseInt(req.params.id)
         if(!id ) return res.status(400).json({message : "ส่งข้อมูลไม่ครบ"})
 
+            // เช็คก่อนว่ามี member ไหนผูกไว้ไหม
+            const memberUsingLocation = await prisma.member.findFirst({
+                where: {locationId: id}
+            })
+            if(memberUsingLocation) return res.status(400).json({message :"มีสมาชิกเลือกข้อมูลนี้อยู่ กรุณาไปเปลี่ยนก่อน"})
+
             await prisma.location.delete({where: {id}})
             return res.status(200).json({message : "ทำรายการสำเร็จ"})
     } catch (error) {

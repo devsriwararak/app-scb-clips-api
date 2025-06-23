@@ -160,7 +160,7 @@ export const updateMember = async (req: Request, res: Response) => {
             companyId: Number(companyId),
             locationId: Number(locationId),
             lecturerId: Number(lecturerId),
-            dateOfTraining
+            dateOfTraining : dateOfTraining || null
         }
 
         const result = await prisma.member.update({
@@ -209,8 +209,12 @@ export const checkIdCard = async (req: Request, res: Response) => {
             useIdCard = decipher
         }
 
+
         const result = await prisma.member.findFirst({
-            where: { idCard: useIdCard }
+            where: { idCard: useIdCard },
+            include : {
+                location: {select: {name: true}}
+            }
         })
 
         if (!result?.idCard) return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" })
@@ -220,10 +224,13 @@ export const checkIdCard = async (req: Request, res: Response) => {
             useIdCard = encrypted
         }
 
+        console.log({result});
+        
 
         const data = {
             idCard: useIdCard,
-            dateOfTraining: result.dateOfTraining
+            dateOfTraining: result.dateOfTraining,
+            location : result.location.name
         }
 
         return res.status(200).json(data)
