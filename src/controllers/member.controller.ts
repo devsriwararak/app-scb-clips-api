@@ -160,7 +160,7 @@ export const updateMember = async (req: Request, res: Response) => {
             companyId: Number(companyId),
             locationId: Number(locationId),
             lecturerId: Number(lecturerId),
-            dateOfTraining : dateOfTraining || null
+            dateOfTraining: dateOfTraining || null
         }
 
         const result = await prisma.member.update({
@@ -209,11 +209,13 @@ export const checkIdCard = async (req: Request, res: Response) => {
             useIdCard = decipher
         }
 
-
         const result = await prisma.member.findFirst({
-            where: { idCard: useIdCard },
-            include : {
-                location: {select: {name: true}}
+            where: { 
+                idCard: useIdCard,
+                verify : 1
+             },
+            include: {
+                location: { select: { name: true } }
             }
         })
 
@@ -224,16 +226,40 @@ export const checkIdCard = async (req: Request, res: Response) => {
             useIdCard = encrypted
         }
 
-        console.log({result});
-        
-
         const data = {
             idCard: useIdCard,
             dateOfTraining: result.dateOfTraining,
-            location : result.location.name
+            location: result.location.name
         }
 
         return res.status(200).json(data)
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+}
+
+export const updateVerify = async (req: Request, res: Response) => {
+    try {
+        const { id, checked } = req.body
+        console.log(req.body);
+        
+        if (!id ) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
+
+        // Check 
+        const resultCheck = await prisma.member.findFirst({
+            where: { id }
+        })
+        if (!resultCheck) return res.status(400).json({ message: "ไม่พบข้อมูล" })
+
+        // Update
+        await prisma.member.update({
+            where: { id },
+            data: { verify: checked || 0 }
+        })
+        return res.status(201).json({ message: "ทำรายการสำเร็จ" })
+
 
     } catch (error) {
         console.log(error);
@@ -397,7 +423,7 @@ export const memberUpdateDateOfTraining = async (req: Request, res: Response) =>
 
         await prisma.member.update({ where: { idCard: id }, data: { dateOfTraining } })
 
-        res.status(200).json({ message: 'บันทึกสำเร็จ', idCard : id })
+        res.status(200).json({ message: 'บันทึกสำเร็จ', idCard: id })
 
     } catch (error) {
         console.log(error);

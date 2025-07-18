@@ -75,6 +75,8 @@ export const createCompany = async(req:Request, res:Response)=> {
 // Update
 export const updateCompany = async(req: Request, res:Response) => {
     try {
+          console.log('Decoded Token:', req.auth); 
+
         const id = parseInt(req.params.id)
         const {name} = req.body
 

@@ -96,6 +96,7 @@ model Member {
   email String? 
   phone String
   companyId Int
+  verify Int @default(0)
   company Company @relation(fields: [companyId],references: [id])
   locationId Int
   location Location @relation(fields: [locationId], references: [id])
