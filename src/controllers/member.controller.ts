@@ -23,10 +23,10 @@ export const getMembers = async (req: Request, res: Response) => {
             ...(terms.length > 0 && {
                 AND: terms.map(item => ({
                     OR: [
-                        { titleName: { contains: item, mode: 'insensitive' } },
-                        { fname: { contains: item, mode: 'insensitive' } },
-                        { lname: { contains: item, mode: 'insensitive' } },
-                        { idCard: { contains: item, mode: 'insensitive' } },
+                        { titleName: { contains: item } },
+                        { fname: { contains: item } },
+                        { lname: { contains: item } },
+                        { idCard: { contains: item } },
                     ]
                 }))
 
@@ -129,7 +129,7 @@ export const updateMember = async (req: Request, res: Response) => {
             where: {
                 idCard: {
                     equals: idCard,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 },
                 NOT: {
                     id: id

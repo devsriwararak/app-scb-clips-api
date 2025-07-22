@@ -14,7 +14,7 @@ export const getQuestionsEnd = async (req: Request, res: Response) => {
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {}
@@ -68,7 +68,7 @@ export const createQuestionEnd = async (req: Request, res: Response) => {
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 }
             }
         })
@@ -115,7 +115,7 @@ export const updateQuestionEnd = async (req: Request, res: Response) => {
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 },
                 NOT: {
                     id: id

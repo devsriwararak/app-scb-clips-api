@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "Member" ADD COLUMN     "idCardType" INTEGER NOT NULL DEFAULT 1;

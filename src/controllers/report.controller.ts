@@ -42,8 +42,8 @@ export const getMemberChageCompany = async (req: Request, res: Response) => {
                     {
                         member: {
                             OR: [
-                                { fname: { contains: search, mode: 'insensitive' } },
-                                { lname: { contains: search, mode: 'insensitive' } }
+                                { fname: { contains: search } },
+                                { lname: { contains: search } }
                             ]
                         }
                     }

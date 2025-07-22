@@ -24,7 +24,7 @@ export const getAllVideos = async (req: Request, res: Response) => {
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {}
@@ -76,7 +76,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 }
             }
         })

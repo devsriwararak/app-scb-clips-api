@@ -14,7 +14,7 @@ export const getLecturers = async (req: Request, res: Response) => {
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {}
@@ -58,7 +58,7 @@ export const createLecturer = async(req:Request, res:Response)=> {
         const resultCheck = await prisma.lecturer.findFirst({
             where: {name : {
                 equals: name ,
-                mode: "insensitive"
+                // mode: "insensitive"
             }}
         })
 
@@ -86,7 +86,7 @@ export const updateLecturer = async(req: Request, res:Response) => {
                 where: {
                     name : {
                         equals: name,
-                        mode: "insensitive"
+                        // mode: "insensitive"
                     },
                     NOT : {
                         id : id

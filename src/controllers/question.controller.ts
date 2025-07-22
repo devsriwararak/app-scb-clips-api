@@ -13,7 +13,7 @@ export const getQuestions = async (req: Request, res: Response) => {
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {}
@@ -55,7 +55,7 @@ export const createQuestion = async(req:Request, res:Response)=> {
         const resultCheck = await prisma.question.findFirst({
             where: {name : {
                 equals: name ,
-                mode: "insensitive"
+                // mode: "insensitive"
             }}
         })
 
@@ -83,7 +83,7 @@ export const updateQuestion = async(req: Request, res:Response) => {
                 where: {
                     name : {
                         equals: name,
-                        mode: "insensitive"
+                        // mode: "insensitive"
                     },
                     NOT : {
                         id : id

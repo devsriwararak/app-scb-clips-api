@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "Member" ADD COLUMN     "verify" INTEGER NOT NULL DEFAULT 0;

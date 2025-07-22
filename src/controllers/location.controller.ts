@@ -13,7 +13,7 @@ export const getLocations = async (req: Request, res: Response) => {
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {}
@@ -70,7 +70,7 @@ export const createLocation = async(req:Request, res:Response)=> {
         const resultCheck = await prisma.location.findFirst({
             where: {name : {
                 equals: name ,
-                mode: "insensitive"
+                // mode: "insensitive"
             }}
         })
 
@@ -98,7 +98,7 @@ export const updateLocation = async(req: Request, res:Response) => {
                 where: {
                     name : {
                         equals: name,
-                        mode: "insensitive"
+                        // mode: "insensitive"
                     },
                     NOT : {
                         id : id

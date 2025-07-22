@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "Member" ALTER COLUMN "idCard" SET DATA TYPE TEXT;

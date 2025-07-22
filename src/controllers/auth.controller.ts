@@ -18,7 +18,8 @@ const generateRefreshToken = (userId: number, role: string) => {
 
 export const registerTest = async (req: Request, res: Response) => {
     try {
-        const { name, username, password, role } = req.body
+        const { name, username, password, email } = req.body
+        
         const checkUser = await prisma.user.findUnique({ where: { username } })
         if (checkUser) return res.status(400).json({ message: 'มี Username นี้แล้ว !' })
 
@@ -29,7 +30,8 @@ export const registerTest = async (req: Request, res: Response) => {
                 name,
                 username,
                 password: hashedPassword,
-                role: role || "USER"
+                email : email,
+                role: "USER"
             }
         })
 

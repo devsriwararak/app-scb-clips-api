@@ -2,11 +2,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  // output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  // provider = "postgresql"
+    provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
 
@@ -16,7 +16,7 @@ model User {
   username String @unique
   password String
   email String?
-  role Role @default(USER)
+  role String @default("USER")
   createdAt DateTime @default(now())
   refreshTokens RefreshToken[]
   
@@ -127,16 +127,145 @@ model VideoToken {
 model MemberChangeCompany {
   id Int @id @default(autoincrement())
   oldCompanyId Int
-  company Company @relation(fields: [oldCompanyId], references: [id])
+  company Company @relation(fields: [oldCompanyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   newCompany String
   memberId Int
-  member Member @relation(fields: [memberId], references: [id])
+  member Member @relation(fields: [memberId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   createdAt DateTime @default(now())
 }
 
-enum Role {
-  USER 
-  ADMIN
-}
+// ALTER DATABASE db_scb_clip COLLATE SQL_Latin1_General_CP1_CI_AS;
+
+
+
+// For Postgresql SERVER *******
+// model User {
+//   id Int @id @default(autoincrement())
+//   name String
+//   username String @unique
+//   password String
+//   email String?
+//   role Role @default(USER)
+//   createdAt DateTime @default(now())
+//   refreshTokens RefreshToken[]
+  
+// }
+
+// model RefreshToken {
+//   id Int @id @default(autoincrement())
+//   token String @unique
+//   userId Int
+//   user User @relation(fields: [userId], references: [id])
+//   createdAt DateTime @default(now())
+//   expiresAt DateTime
+// }
+
+
+
+// model Company {
+//   id Int @id @default(autoincrement())
+//   name String @unique
+//   createdAT DateTime @default(now())
+//   member Member[]
+//   memberChangeCompany MemberChangeCompany[]
+// }
+
+// model Location {
+//   id Int @id @default(autoincrement())
+//   name String @unique
+//   member Member[]
+//   createdAT DateTime @default(now())
+// }
+
+// model Lecturer {
+//   id Int @id @default(autoincrement())
+//   name String @unique
+//   member Member[]
+//   createdAT DateTime @default(now())
+// }
+
+// model Video {
+//   id Int @id @default(autoincrement())
+//   name  String @unique
+//   detail String?
+//   filePath  String
+//   timeAdvert Int @default(0)
+//   createdAt DateTime @default(now())
+// }
+
+// model Question {
+//   id Int @id @default(autoincrement())
+//   name String @unique
+//   answer String @default("YES")
+//   createdAT DateTime @default(now())
+// }
+
+// model QuestionEnd {
+//   id Int @id @default(autoincrement())
+//   name String @unique
+//   createdAT DateTime @default(now())
+//   questionEndList QuestionEndList[]
+// }
+
+// model QuestionEndList {
+//   id Int @id @default(autoincrement())
+//   question String 
+//   status Int @default(0)
+//   questionEndId Int
+//   questionEnd QuestionEnd @relation(fields: [questionEndId], references: [id])
+//   createdAT DateTime @default(now())
+// }
+
+// model Member {
+//   id Int @id @default(autoincrement())
+//   titleName String
+//   fname String
+//   lname String
+//   idCard  String @unique
+//   idCardType Int @default(1)
+//   email String? 
+//   phone String
+//   companyId Int
+//   verify Int @default(0)
+//   company Company @relation(fields: [companyId],references: [id])
+//   locationId Int
+//   location Location @relation(fields: [locationId], references: [id])
+//   lecturerId Int
+//   lecturer Lecturer @relation(fields: [lecturerId], references: [id])
+//   createdAt DateTime @default(now())
+//   statusVideoEnd Int @default(0)
+//   statusQuestionEnd Int @default(0)
+//   dateOfTraining DateTime?
+//   dateEndCertificate DateTime?
+//   memberChangeCompany MemberChangeCompany[]
+// }
+
+// model VideoToken {
+//   id        Int      @id @default(autoincrement())
+//   token     String   @unique
+//   filePath  String
+//   idCard    String
+//   expiresAt DateTime
+//   used      Boolean  @default(false)
+//   createdAt DateTime @default(now())
+
+//   @@index([expiresAt])
+//   @@index([used])
+// }
+
+// model MemberChangeCompany {
+//   id Int @id @default(autoincrement())
+//   oldCompanyId Int
+//   company Company @relation(fields: [oldCompanyId], references: [id])
+//   newCompany String
+//   memberId Int
+//   member Member @relation(fields: [memberId], references: [id])
+//   createdAt DateTime @default(now())
+// }
+
+// enum Role {
+//   USER 
+//   ADMIN
+// }
 
 

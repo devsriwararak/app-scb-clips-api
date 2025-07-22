@@ -13,7 +13,7 @@ export const getCompanys = async (req: Request, res: Response) => {
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {}
@@ -57,7 +57,7 @@ export const createCompany = async(req:Request, res:Response)=> {
         const resultCheck = await prisma.company.findFirst({
             where: {name : {
                 equals: name ,
-                mode: "insensitive"
+                // mode: "insensitive"
             }}
         })
 
@@ -87,7 +87,7 @@ export const updateCompany = async(req: Request, res:Response) => {
                 where: {
                     name : {
                         equals: name,
-                        mode: "insensitive"
+                        // mode: "insensitive"
                     },
                     NOT : {
                         id : id
