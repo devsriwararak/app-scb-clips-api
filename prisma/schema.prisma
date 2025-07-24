@@ -98,6 +98,7 @@ model Member {
   phone String
   companyId Int
   verify Int @default(0)
+  image String?
   company Company @relation(fields: [companyId],references: [id])
   locationId Int
   location Location @relation(fields: [locationId], references: [id])
