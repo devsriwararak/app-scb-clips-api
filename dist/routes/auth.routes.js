@@ -11,4 +11,6 @@ router.post("/register", (0, asyncHandler_1.asyncHandler)(auth_controller_1.regi
 router.post("/login", (0, asyncHandler_1.asyncHandler)(auth_controller_1.login));
 router.post("/logout", (0, asyncHandler_1.asyncHandler)(auth_controller_1.logout));
 router.post("/refresh-token", (0, asyncHandler_1.asyncHandler)(auth_controller_1.refreshTokene));
+// check login
+router.post("/validate-member", (0, asyncHandler_1.asyncHandler)(auth_controller_1.varidateMember));
 exports.default = router;

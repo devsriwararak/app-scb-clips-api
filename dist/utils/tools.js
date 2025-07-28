@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.decrypt = exports.encrypt = exports.checkExpiredCertificates = exports.generateSecureToken = exports.generateToken = exports.expiresAt = exports.sanitizeFilename = void 0;
+exports.deleteImageFtp = exports.uploadFileToFtp = exports.decrypt = exports.encrypt = exports.checkExpiredCertificates = exports.generateSecureToken = exports.generateToken = exports.expiresAt = exports.sanitizeFilename = void 0;
 exports.generatePdf = generatePdf;
 const crypto_1 = __importDefault(require("crypto"));
 const db_1 = __importDefault(require("../config/db"));
@@ -22,6 +22,7 @@ const puppeteer_1 = __importDefault(require("puppeteer"));
 const ejs_1 = __importDefault(require("ejs"));
 const moment_1 = __importDefault(require("moment"));
 require("moment/locale/th");
+const ftpClient_1 = require("../config/ftpClient");
 moment_1.default.locale('th'); // ตั้งให้ใช้ภาษาไทย
 const NODE_ENV = process.env.NODE_ENV;
 const sanitizeFilename = (filename) => {
@@ -195,3 +196,67 @@ const decrypt = (text) => __awaiter(void 0, void 0, void 0, function* () {
     return decrypted;
 });
 exports.decrypt = decrypt;
+const uploadFileToFtp = (imageFile, oldImagePath) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!imageFile) {
+        throw new Error('No file provided for upload.');
+    }
+    // upload รูป
+    const filePath = imageFile.path;
+    const originalName = imageFile.originalname;
+    const safeName = (0, exports.sanitizeFilename)(originalName);
+    const remotePath = `/images/${Date.now()}_${safeName}`;
+    const client = yield (0, ftpClient_1.createFtpClient)();
+    try {
+        // ลบรูปเก่าก่อน ถ้ามีนะ
+        if (oldImagePath) {
+            try {
+                yield client.remove(oldImagePath);
+            }
+            catch (deleteError) {
+                if (deleteError.code === 550) {
+                    console.warn(`Old file not found on FTP server, skipping deletion: ${oldImagePath}`);
+                }
+                else {
+                    throw new Error(`Failed to delete old file: ${deleteError.message}`);
+                }
+            }
+        }
+        yield client.uploadFrom(filePath, remotePath);
+    }
+    catch (error) {
+        console.error('FTP Upload Error:', error);
+        throw new Error('Failed to upload file to FTP server.');
+    }
+    finally {
+        yield client.close();
+        // ลบไฟล์ temp
+        try {
+            yield promises_1.default.unlink(filePath);
+            console.log(`Successfully deleted temporary file: ${filePath}`);
+        }
+        catch (unlinkError) {
+            console.error(`Failed to delete temporary file: ${filePath}`, unlinkError);
+        }
+    }
+    return remotePath;
+});
+exports.uploadFileToFtp = uploadFileToFtp;
+const deleteImageFtp = (imageFile) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!imageFile) {
+        throw new Error('No file provided for upload.');
+    }
+    const client = yield (0, ftpClient_1.createFtpClient)();
+    try {
+        yield client.remove(imageFile);
+        return true;
+    }
+    catch (deleteError) {
+        if (deleteError.code === 550) {
+            console.warn(`Old file not found on FTP server, skipping deletion: ${imageFile}`);
+        }
+        else {
+            throw new Error(`Failed to delete old file: ${deleteError.message}`);
+        }
+    }
+});
+exports.deleteImageFtp = deleteImageFtp;

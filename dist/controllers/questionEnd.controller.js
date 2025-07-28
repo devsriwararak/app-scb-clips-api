@@ -25,7 +25,7 @@ const getQuestionsEnd = (req, res) => __awaiter(void 0, void 0, void 0, function
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {};
@@ -75,7 +75,7 @@ const createQuestionEnd = (req, res) => __awaiter(void 0, void 0, void 0, functi
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 }
             }
         });
@@ -121,7 +121,7 @@ const updateQuestionEnd = (req, res) => __awaiter(void 0, void 0, void 0, functi
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 },
                 NOT: {
                     id: id

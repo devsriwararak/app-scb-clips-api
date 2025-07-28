@@ -24,7 +24,7 @@ const getLocations = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {};
@@ -76,7 +76,7 @@ const createLocation = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const resultCheck = yield db_1.default.location.findFirst({
             where: { name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 } }
         });
         if (resultCheck)
@@ -102,7 +102,7 @@ const updateLocation = (req, res) => __awaiter(void 0, void 0, void 0, function*
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 },
                 NOT: {
                     id: id
@@ -129,6 +129,12 @@ const deleteLocation = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const id = parseInt(req.params.id);
         if (!id)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
+        // เช็คก่อนว่ามี member ไหนผูกไว้ไหม
+        const memberUsingLocation = yield db_1.default.member.findFirst({
+            where: { locationId: id }
+        });
+        if (memberUsingLocation)
+            return res.status(400).json({ message: "มีสมาชิกเลือกข้อมูลนี้อยู่ กรุณาไปเปลี่ยนก่อน" });
         yield db_1.default.location.delete({ where: { id } });
         return res.status(200).json({ message: "ทำรายการสำเร็จ" });
     }

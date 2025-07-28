@@ -6,6 +6,7 @@ import puppeteer from "puppeteer";
 import ejs from 'ejs';
 import moment from 'moment';
 import 'moment/locale/th';
+import { createFtpClient } from "../config/ftpClient";
 moment.locale('th'); // ตั้งให้ใช้ภาษาไทย
 
 const NODE_ENV = process.env.NODE_ENV
@@ -81,7 +82,7 @@ export const checkExpiredCertificates = async () => {
             })
         }
         return expiredIds.length;
-        
+
     } catch (error) {
         console.error('เกิดข้อผิดพลาด', error)
     }
@@ -209,4 +210,66 @@ export const decrypt = async (text: string) => {
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted
+}
+
+
+export const uploadFileToFtp = async (imageFile: Express.Multer.File, oldImagePath?: string | null) => {
+    if (!imageFile) {
+        throw new Error('No file provided for upload.');
+    }
+    // upload รูป
+    const filePath = imageFile.path;
+    const originalName = imageFile.originalname;
+    const safeName = sanitizeFilename(originalName)
+    const remotePath = `/images/${Date.now()}_${safeName}`;
+
+    const client = await createFtpClient();
+    try {
+        // ลบรูปเก่าก่อน ถ้ามีนะ
+        if (oldImagePath) {
+            try {
+                await client.remove(oldImagePath);
+            } catch (deleteError: any) {
+                if (deleteError.code === 550) {
+                    console.warn(`Old file not found on FTP server, skipping deletion: ${oldImagePath}`);
+                } else {
+                    throw new Error(`Failed to delete old file: ${deleteError.message}`);
+                }
+            }
+        }
+        await client.uploadFrom(filePath, remotePath);
+
+    } catch (error) {
+        console.error('FTP Upload Error:', error);
+        throw new Error('Failed to upload file to FTP server.');
+    } finally {
+        await client.close();
+        // ลบไฟล์ temp
+        try {
+            await fs.unlink(filePath);
+            console.log(`Successfully deleted temporary file: ${filePath}`);
+        } catch (unlinkError) {
+            console.error(`Failed to delete temporary file: ${filePath}`, unlinkError);
+        }
+
+    }
+    return remotePath
+
+}
+
+export const deleteImageFtp = async (imageFile: string) => {
+    if (!imageFile) {
+        throw new Error('No file provided for upload.');
+    }
+    const client = await createFtpClient();
+    try {
+        await client.remove(imageFile);
+        return true
+    } catch (deleteError: any) {
+        if (deleteError.code === 550) {
+            console.warn(`Old file not found on FTP server, skipping deletion: ${imageFile}`);
+        } else {
+            throw new Error(`Failed to delete old file: ${deleteError.message}`);
+        }
+    }
 }

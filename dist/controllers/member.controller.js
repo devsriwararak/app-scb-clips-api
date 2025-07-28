@@ -12,27 +12,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.certificatePDFSend = exports.certificatePDF = exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
+exports.memberUpdateDateOfTraining = exports.getImageMember = exports.certificateEnd = exports.certificatePDFSend = exports.certificatePDF = exports.updateVerify = exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const report_controller_1 = require("./report.controller");
 const tools_1 = require("../utils/tools");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const date_fns_1 = require("date-fns");
 const moment_1 = __importDefault(require("moment"));
+const ftpClient_1 = require("../config/ftpClient");
+require('isomorphic-fetch');
 const getMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 8;
         const search = req.query.search || "";
         const companyId = req.query.companyId || "";
+        const filter = req.query.filter || "";
         const terms = (search === null || search === void 0 ? void 0 : search.split(/\s+/).filter(Boolean)) || [];
+        console.log({ filter });
         const where = Object.assign(Object.assign({}, (terms.length > 0 && {
             AND: terms.map(item => ({
                 OR: [
-                    { titleName: { contains: item, mode: 'insensitive' } },
-                    { fname: { contains: item, mode: 'insensitive' } },
-                    { lname: { contains: item, mode: 'insensitive' } },
-                    { idCard: { contains: item, mode: 'insensitive' } },
+                    { titleName: { contains: item } },
+                    { fname: { contains: item } },
+                    { lname: { contains: item } },
+                    { idCard: { contains: item } },
                 ]
             }))
         })), (companyId && {
@@ -44,7 +48,7 @@ const getMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: {
-                    createdAt: 'desc'
+                    createdAt: filter === 'asc' ? 'asc' : 'desc'
                 },
                 include: {
                     company: { select: { name: true } },
@@ -74,7 +78,10 @@ exports.getMembers = getMembers;
 const createMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { titleName, fname, lname, idCard, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body;
-        console.log(req.body);
+        const imageFile = req.file;
+        if (!imageFile) {
+            return res.status(400).json({ message: 'Image is required.' });
+        }
         if (!titleName || !fname || !lname || !idCard || !phone || !companyId || !locationId || !lecturerId) {
             return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
         }
@@ -84,6 +91,7 @@ const createMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         });
         if (resultCheck)
             return res.status(400).json({ message: "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่" });
+        const imageUrl = yield (0, tools_1.uploadFileToFtp)(imageFile);
         const result = yield db_1.default.member.create({
             data: {
                 titleName,
@@ -92,6 +100,7 @@ const createMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 idCard,
                 phone,
                 email,
+                image: imageUrl || "",
                 companyId: Number(companyId),
                 locationId: Number(locationId),
                 lecturerId: Number(lecturerId),
@@ -112,7 +121,7 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     try {
         const id = parseInt(req.params.id);
         const { titleName, fname, lname, idCard, idCardType, phone, companyId, locationId, lecturerId, dateOfTraining, email } = req.body;
-        console.log(req.body);
+        const imageFile = req.file;
         if (!id || !idCard)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
         // Check รหัสบัตรประชาชนซ้ำ
@@ -120,7 +129,7 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             where: {
                 idCard: {
                     equals: idCard,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 },
                 NOT: {
                     id: id
@@ -138,6 +147,14 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             const companyName = yield db_1.default.company.findUnique({ where: { id: Number(companyId) } });
             yield (0, report_controller_1.createMemberChangeCompany)({ id, oldCompanyId: oldMember.companyId, newCompany: companyName === null || companyName === void 0 ? void 0 : companyName.name });
         }
+        // หารูปเก่า กรณีจะเปลี่ยนรูป
+        let newInmagePath = "";
+        const searchOldImage = yield db_1.default.member.findFirst({ where: { id }, select: { image: true } });
+        const oldImage = String(searchOldImage === null || searchOldImage === void 0 ? void 0 : searchOldImage.image);
+        if (imageFile) {
+            // await deleteImageFtp(String(oldImage))
+            newInmagePath = yield (0, tools_1.uploadFileToFtp)(imageFile, oldImage);
+        }
         const data = {
             titleName,
             fname,
@@ -146,10 +163,11 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             idCardType,
             phone,
             email,
+            image: imageFile ? newInmagePath : oldImage,
             companyId: Number(companyId),
             locationId: Number(locationId),
             lecturerId: Number(lecturerId),
-            dateOfTraining
+            dateOfTraining: dateOfTraining || null
         };
         const result = yield db_1.default.member.update({
             where: { id },
@@ -169,6 +187,13 @@ const deleteMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const id = parseInt(req.params.id);
         if (!id)
             return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
+        const result = yield db_1.default.member.findFirst({
+            where: { id },
+            select: { image: true }
+        });
+        const image = result === null || result === void 0 ? void 0 : result.image;
+        if (image)
+            yield (0, tools_1.deleteImageFtp)(image);
         yield db_1.default.member.delete({ where: { id } });
         return res.status(200).json({ message: "ทำรายการสำเร็จ" });
     }
@@ -195,7 +220,13 @@ const checkIdCard = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             useIdCard = decipher;
         }
         const result = yield db_1.default.member.findFirst({
-            where: { idCard: useIdCard }
+            where: {
+                idCard: useIdCard,
+                verify: 1
+            },
+            include: {
+                location: { select: { name: true } }
+            }
         });
         if (!(result === null || result === void 0 ? void 0 : result.idCard))
             return res.status(400).json({ message: "ไม่พบข้อมูล กรุณาลงทะเบียน" });
@@ -205,7 +236,8 @@ const checkIdCard = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         const data = {
             idCard: useIdCard,
-            dateOfTraining: result.dateOfTraining
+            dateOfTraining: result.dateOfTraining,
+            location: result.location.name
         };
         return res.status(200).json(data);
     }
@@ -215,6 +247,31 @@ const checkIdCard = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.checkIdCard = checkIdCard;
+const updateVerify = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id, checked } = req.body;
+        console.log(req.body);
+        if (!id)
+            return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
+        // Check 
+        const resultCheck = yield db_1.default.member.findFirst({
+            where: { id }
+        });
+        if (!resultCheck)
+            return res.status(400).json({ message: "ไม่พบข้อมูล" });
+        // Update
+        yield db_1.default.member.update({
+            where: { id },
+            data: { verify: checked || 0 }
+        });
+        return res.status(201).json({ message: "ทำรายการสำเร็จ" });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+exports.updateVerify = updateVerify;
 // member Change Company Report
 // Certificate PDF
 const certificatePDF = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -256,7 +313,6 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
     var _a;
     try {
         const { idCard } = req.body;
-        console.log({ idCard });
         if (!idCard)
             return res.status(404).json({ message: "ส่งข้อมูลไม่ครบ !" });
         const idCardLength = idCard.length;
@@ -307,6 +363,64 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
                 },
             ],
         });
+        // ส่ง Emaill  microsoft graph
+        // const pdfBytes = await generatePdf(member) as Buffer;
+        // const namePDF = `certificate_${idCard}.pdf`;
+        // const formattedDateCertificateDMY = moment(member.dateOfTraining).format('DD/MM') + '/' + (moment(member.dateOfTraining).year() + 543);
+        // const formattedDateCertificateEndDMY = moment(member.dateEndCertificate).format('DD/MM') + '/' + (moment(member.dateEndCertificate).year() + 543);
+        // const text = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
+        //     รหัสบัตรประชาชน : ${member.idCard}
+        //     วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
+        //     ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
+        //     โปรดดูใบรับรองของคุณที่แนบมา`;
+        // const msalConfig = {
+        //     auth: {
+        //         clientId: process.env.AZURE_AD_CLIENT_ID!,
+        //         authority: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID!}`,
+        //         clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
+        //     },
+        // };
+        // const cca = new ConfidentialClientApplication(msalConfig);
+        // const authResponse = await cca.acquireTokenByClientCredential({
+        //     scopes: ['https://graph.microsoft.com/.default'],
+        // });
+        // if (!authResponse || !authResponse.accessToken) {
+        //     throw new Error('Could not acquire token for Graph API');
+        // }
+        // const graphClient = Client.init({
+        //     authProvider: (done) => {
+        //         done(null, authResponse.accessToken);
+        //     },
+        // });
+        // const base64Attachment = pdfBytes.toString('base64');
+        // const mailPayload = {
+        //     message: {
+        //         subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
+        //         body: {
+        //             contentType: 'Text', // หาก 'text' ของคุณเป็น HTML ให้เปลี่ยนเป็น 'HTML'
+        //             content: text,
+        //         },
+        //         toRecipients: [
+        //             {
+        //                 emailAddress: {
+        //                     address: member.email ?? "",
+        //                 },
+        //             },
+        //         ],
+        //         attachments: [
+        //             {
+        //                 '@odata.type': '#microsoft.graph.fileAttachment',
+        //                 name: namePDF, // ใช้ชื่อไฟล์จากตัวแปรของคุณ
+        //                 contentType: 'application/pdf',
+        //                 contentBytes: base64Attachment, // ส่งไฟล์ในรูปแบบ Base64
+        //             },
+        //         ],
+        //     },
+        //     saveToSentItems: 'true', // เก็บอีเมลที่ส่งแล้วใน Sent Items
+        // };
+        // const senderEmail = process.env.GRAPH_SENDER_EMAIL; // อีเมลผู้ส่งที่ตั้งค่าใน .env
+        // await graphClient.api(`/users/${senderEmail}/sendMail`).post(mailPayload);
+        // console.log(`Email successfully sent to ${member.email} via Microsoft Graph.`)
         // บันทึก DB
         yield db_1.default.member.update({
             where: { idCard: useIdCard },
@@ -322,3 +436,79 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.certificatePDFSend = certificatePDFSend;
+const certificateEnd = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.body;
+        if (!id)
+            return res.status(400).json({ message: 'ส่งข้อมูลไม่ครบ !' });
+        const dateNow = (0, moment_1.default)().startOf('day').toDate();
+        const dateYesterday = (0, moment_1.default)().subtract(1, 'days').startOf('day').toDate();
+        yield db_1.default.member.update({
+            where: { id },
+            data: {
+                dateEndCertificate: dateNow,
+                dateOfTraining: dateYesterday,
+            }
+        });
+        yield (0, tools_1.checkExpiredCertificates)();
+        res.status(200).json({ message: 'ส่ง Email สำเร็จ !!' });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+exports.certificateEnd = certificateEnd;
+const getImageMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const { fileName } = req.body;
+    if (!fileName) {
+        return res.status(400).send('File name is required.');
+    }
+    const client = yield (0, ftpClient_1.createFtpClient)();
+    try {
+        const extension = (_a = fileName.split('.').pop()) === null || _a === void 0 ? void 0 : _a.toLowerCase();
+        let contentType = 'application/octet-stream'; // default
+        if (extension === 'jpg' || extension === 'jpeg')
+            contentType = 'image/jpeg';
+        if (extension === 'png')
+            contentType = 'image/png';
+        if (extension === 'gif')
+            contentType = 'image/gif';
+        res.setHeader('Content-Type', contentType);
+        yield client.downloadTo(res, fileName);
+    }
+    catch (error) {
+        if (typeof error === 'object' && error !== null && 'code' in error) {
+            const ftpError = error;
+            if (ftpError.code === 550) {
+                // หาไฟล์ไม่เจอในขั้นตอน .size()
+                return res.status(404).json({ message: `File not found: ${fileName}` });
+            }
+        }
+        // จัดการ error อื่นๆ ที่อาจเกิดขึ้น
+        return res.status(500).json({ message: "An unexpected server error occurred." });
+    }
+    finally {
+        if (!client.closed) {
+            yield client.close();
+        }
+    }
+});
+exports.getImageMember = getImageMember;
+// Users
+const memberUpdateDateOfTraining = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { dateOfTraining } = req.body;
+        if (!id && !dateOfTraining)
+            return res.status(400).json({ message: 'ส่งข้อมูลไม่ครบ' });
+        yield db_1.default.member.update({ where: { idCard: id }, data: { dateOfTraining } });
+        res.status(200).json({ message: 'บันทึกสำเร็จ', idCard: id });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error", error });
+    }
+});
+exports.memberUpdateDateOfTraining = memberUpdateDateOfTraining;

@@ -29,7 +29,7 @@ const getAllVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {};
@@ -76,7 +76,7 @@ const uploadVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 }
             }
         });

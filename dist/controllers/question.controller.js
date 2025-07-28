@@ -24,7 +24,7 @@ const getQuestions = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {};
@@ -63,7 +63,7 @@ const createQuestion = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const resultCheck = yield db_1.default.question.findFirst({
             where: { name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 } }
         });
         if (resultCheck)
@@ -89,7 +89,7 @@ const updateQuestion = (req, res) => __awaiter(void 0, void 0, void 0, function*
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 },
                 NOT: {
                     id: id

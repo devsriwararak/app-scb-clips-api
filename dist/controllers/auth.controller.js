@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.refreshTokene = exports.login = exports.registerTest = void 0;
+exports.varidateMember = exports.logout = exports.refreshTokene = exports.login = exports.registerTest = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -27,7 +27,7 @@ const generateRefreshToken = (userId, role) => {
 };
 const registerTest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { name, username, password, role } = req.body;
+        const { name, username, password, email } = req.body;
         const checkUser = yield db_1.default.user.findUnique({ where: { username } });
         if (checkUser)
             return res.status(400).json({ message: 'มี Username นี้แล้ว !' });
@@ -37,7 +37,8 @@ const registerTest = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 name,
                 username,
                 password: hashedPassword,
-                role: role || "USER"
+                email: email,
+                role: "USER"
             }
         });
         res.status(201).json({ message: "สร้างสำเร็จ", user });
@@ -150,3 +151,19 @@ const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.logout = logout;
+const varidateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email } = req.body;
+    try {
+        if (!email)
+            return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
+        const checkUser = yield db_1.default.user.findFirst({ where: { email } });
+        if (!checkUser)
+            return res.status(400).json({ message: 'ไม่พบ Email นี้ในระบบ' });
+        return res.status(200).json({ message: "success" });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+});
+exports.varidateMember = varidateMember;

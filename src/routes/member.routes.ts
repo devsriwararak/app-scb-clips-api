@@ -11,7 +11,7 @@ const upload = multer({ dest: 'uploads/' });
 
 router.get("/all", asyncHandler(getMembers));
 router.post('/add', upload.single('image'), asyncHandler(createMember)) 
-router.put('/:id', authenticateToken, asyncHandler(updateMember))
+router.put('/:id', upload.single('image'), authenticateToken, asyncHandler(updateMember))
 router.delete('/:id', authenticateToken, asyncHandler(deleteMember))
 router.post('/checkIdCard', asyncHandler(checkIdCard))
 router.post('/updateVerify', asyncHandler(updateVerify))

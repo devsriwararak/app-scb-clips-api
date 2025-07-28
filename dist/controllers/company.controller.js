@@ -24,7 +24,7 @@ const getCompanys = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             ? {
                 name: {
                     contains: search,
-                    mode: 'insensitive',
+                    // mode: 'insensitive',
                 },
             }
             : {};
@@ -64,7 +64,7 @@ const createCompany = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const resultCheck = yield db_1.default.company.findFirst({
             where: { name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 } }
         });
         if (resultCheck)
@@ -81,6 +81,7 @@ exports.createCompany = createCompany;
 // Update
 const updateCompany = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        console.log('Decoded Token:', req.auth);
         const id = parseInt(req.params.id);
         const { name } = req.body;
         if (!id || !name)
@@ -90,7 +91,7 @@ const updateCompany = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    // mode: "insensitive"
                 },
                 NOT: {
                     id: id

@@ -46,8 +46,8 @@ const getMemberChageCompany = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 {
                     member: {
                         OR: [
-                            { fname: { contains: search, mode: 'insensitive' } },
-                            { lname: { contains: search, mode: 'insensitive' } }
+                            { fname: { contains: search } },
+                            { lname: { contains: search } }
                         ]
                     }
                 }
