@@ -19,8 +19,15 @@ const generateRefreshToken = (userId: number, role: string) => {
 export const registerTest = async (req: Request, res: Response) => {
     try {
         const { name, username, password, email } = req.body
-        
-        const checkUser = await prisma.user.findUnique({ where: { username } })
+
+        const checkUser = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { username },
+                    { email }
+                ]
+            }
+        })
         if (checkUser) return res.status(400).json({ message: 'มี Username นี้แล้ว !' })
 
         const hashedPassword = await bcrypt.hash(password, 10)
@@ -30,7 +37,7 @@ export const registerTest = async (req: Request, res: Response) => {
                 name,
                 username,
                 password: hashedPassword,
-                email : email,
+                email: email,
                 role: "USER"
             }
         })
@@ -76,7 +83,7 @@ export const login = async (req: Request, res: Response) => {
         });
 
         await checkExpiredCertificates()
-        
+
         return res.json({
             id: user.id,
             username: user.username,
@@ -163,20 +170,20 @@ export const logout = async (req: Request, res: Response) => {
     }
 }
 
-export const varidateMember = async(req: Request, res: Response)=> {
-    const {email} = req.body
+export const varidateMember = async (req: Request, res: Response) => {
+    const { email } = req.body
     try {
-        if(!email) return res.status(400).json({message : "ส่งข้อมูลไม่ครบ"})
+        if (!email) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
-        const checkUser = await prisma.user.findFirst({where: {email}})
+        const checkUser = await prisma.user.findFirst({ where: { email } })
         if (!checkUser) return res.status(400).json({ message: 'ไม่พบ Email นี้ในระบบ' })
-            
-        return res.status(200).json({message : "success"})
 
-        
+        return res.status(200).json({ message: "success" })
+
+
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error" });
     }
-    
+
 }

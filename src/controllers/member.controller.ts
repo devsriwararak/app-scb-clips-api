@@ -14,6 +14,7 @@ import { ConfidentialClientApplication } from '@azure/msal-node'
 import { Client } from '@microsoft/microsoft-graph-client'
 import { createFtpClient } from "../config/ftpClient";
 import { Readable } from "stream";
+import { sendMail } from "../utils/mail.service";
 require('isomorphic-fetch');
 
 
@@ -27,8 +28,8 @@ export const getMembers = async (req: Request, res: Response) => {
         const filter = (req.query.filter as string) || ""
         const terms = search?.split(/\s+/).filter(Boolean) || []
 
-        console.log({filter});
-        
+        console.log({ filter });
+
 
 
         const where: Prisma.MemberWhereInput = {
@@ -46,7 +47,7 @@ export const getMembers = async (req: Request, res: Response) => {
             ...(companyId && {
                 companyId: parseInt(companyId)
             })
-           
+
         }
 
         const [data, totalItems] = await Promise.all([
@@ -108,7 +109,7 @@ export const createMember = async (req: Request, res: Response) => {
         if (resultCheck) return res.status(400).json({ message: "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่" })
 
         const imageUrl = await uploadFileToFtp(imageFile);
-    
+
         const result = await prisma.member.create({
             data: {
                 titleName,
@@ -170,14 +171,14 @@ export const updateMember = async (req: Request, res: Response) => {
         // หารูปเก่า กรณีจะเปลี่ยนรูป
         let newInmagePath = ""
 
-        const searchOldImage = await prisma.member.findFirst({where : {id}, select: {image : true} })
+        const searchOldImage = await prisma.member.findFirst({ where: { id }, select: { image: true } })
         const oldImage = String(searchOldImage?.image)
 
-        if(imageFile) {
+        if (imageFile) {
             // await deleteImageFtp(String(oldImage))
             newInmagePath = await uploadFileToFtp(imageFile, oldImage)
-            
-            
+
+
         }
 
         const data = {
@@ -188,7 +189,7 @@ export const updateMember = async (req: Request, res: Response) => {
             idCardType,
             phone,
             email,
-            image : imageFile ? newInmagePath : oldImage ,
+            image: imageFile ? newInmagePath : oldImage,
             companyId: Number(companyId),
             locationId: Number(locationId),
             lecturerId: Number(lecturerId),
@@ -214,13 +215,13 @@ export const deleteMember = async (req: Request, res: Response) => {
         const id = parseInt(req.params.id)
         if (!id) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" })
 
-            const result = await prisma.member.findFirst({
-                where: {id} , 
-                select : {image : true }
-            })
-            const image = result?.image
-            if(image) await deleteImageFtp(image)
-            
+        const result = await prisma.member.findFirst({
+            where: { id },
+            select: { image: true }
+        })
+        const image = result?.image
+        if (image) await deleteImageFtp(image)
+
         await prisma.member.delete({ where: { id } })
         return res.status(200).json({ message: "ทำรายการสำเร็จ" })
     } catch (error) {
@@ -568,5 +569,30 @@ export const memberUpdateDateOfTraining = async (req: Request, res: Response) =>
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error", error });
+    }
+}
+
+
+export const test = async (req: Request, res: Response) => {
+    try {
+
+        const emailHtml = `
+      <h1>สวัสดีคุณ xxxx!</h1>
+      <p>ยินดีต้อนรับสู่บริการของเรา</p>
+      <p>นี่คืออีเมลที่ส่งจากระบบอัตโนมัติโดยใช้ Microsoft Graph API ครับ</p>
+    `;
+
+        await sendMail({
+            to: "devsriwararak.work@gmail.com",
+            subject: `ยินดีต้อนรับคุณ xxx`,
+            htmlBody: emailHtml,
+        });
+
+        res.status(200).json({ message: 'บันทึกสำเร็จ' })
+
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'An error occurred while sending the email.' });
     }
 }
