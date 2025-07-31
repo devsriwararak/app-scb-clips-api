@@ -28,7 +28,14 @@ const generateRefreshToken = (userId, role) => {
 const registerTest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { name, username, password, email } = req.body;
-        const checkUser = yield db_1.default.user.findUnique({ where: { username } });
+        const checkUser = yield db_1.default.user.findFirst({
+            where: {
+                OR: [
+                    { username },
+                    { email }
+                ]
+            }
+        });
         if (checkUser)
             return res.status(400).json({ message: 'มี Username นี้แล้ว !' });
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.memberUpdateDateOfTraining = exports.getImageMember = exports.certificateEnd = exports.certificatePDFSend = exports.certificatePDF = exports.updateVerify = exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
+exports.test = exports.memberUpdateDateOfTraining = exports.getImageMember = exports.certificateEnd = exports.certificatePDFSend = exports.certificatePDF = exports.updateVerify = exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const report_controller_1 = require("./report.controller");
 const tools_1 = require("../utils/tools");
@@ -20,6 +20,7 @@ const nodemailer_1 = __importDefault(require("nodemailer"));
 const date_fns_1 = require("date-fns");
 const moment_1 = __importDefault(require("moment"));
 const ftpClient_1 = require("../config/ftpClient");
+const mail_service_1 = require("../utils/mail.service");
 require('isomorphic-fetch');
 const getMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -310,7 +311,6 @@ const certificatePDF = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.certificatePDF = certificatePDF;
 const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     try {
         const { idCard } = req.body;
         if (!idCard)
@@ -350,77 +350,32 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
         วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
         ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
         โปรดดูใบรับรองของคุณที่แนบมา`;
-        yield transporter.sendMail({
-            from: `"Thai Business Mate" <${process.env.EMAIL_USER}>`,
-            to: (_a = member.email) !== null && _a !== void 0 ? _a : "",
-            subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
-            text: text,
+        yield (0, mail_service_1.sendMail)({
+            to: "devsriwararak.work@gmail.com",
+            subject: `ยินดีต้อนรับคุณ xxx`,
+            htmlBody: text,
             attachments: [
                 {
                     filename: namePDF,
-                    content: pdfBytes,
+                    content: pdfBytes, // ส่ง Buffer เข้าไปโดยตรง
                     contentType: 'application/pdf',
-                },
-            ],
+                }
+            ]
         });
-        // ส่ง Emaill  microsoft graph
-        // const pdfBytes = await generatePdf(member) as Buffer;
-        // const namePDF = `certificate_${idCard}.pdf`;
-        // const formattedDateCertificateDMY = moment(member.dateOfTraining).format('DD/MM') + '/' + (moment(member.dateOfTraining).year() + 543);
-        // const formattedDateCertificateEndDMY = moment(member.dateEndCertificate).format('DD/MM') + '/' + (moment(member.dateEndCertificate).year() + 543);
-        // const text = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
-        //     รหัสบัตรประชาชน : ${member.idCard}
-        //     วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
-        //     ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
-        //     โปรดดูใบรับรองของคุณที่แนบมา`;
-        // const msalConfig = {
-        //     auth: {
-        //         clientId: process.env.AZURE_AD_CLIENT_ID!,
-        //         authority: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID!}`,
-        //         clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-        //     },
-        // };
-        // const cca = new ConfidentialClientApplication(msalConfig);
-        // const authResponse = await cca.acquireTokenByClientCredential({
-        //     scopes: ['https://graph.microsoft.com/.default'],
-        // });
-        // if (!authResponse || !authResponse.accessToken) {
-        //     throw new Error('Could not acquire token for Graph API');
-        // }
-        // const graphClient = Client.init({
-        //     authProvider: (done) => {
-        //         done(null, authResponse.accessToken);
-        //     },
-        // });
-        // const base64Attachment = pdfBytes.toString('base64');
-        // const mailPayload = {
-        //     message: {
-        //         subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
-        //         body: {
-        //             contentType: 'Text', // หาก 'text' ของคุณเป็น HTML ให้เปลี่ยนเป็น 'HTML'
-        //             content: text,
+        // ส่ง Gmail
+        // await transporter.sendMail({
+        //     from: `"Thai Business Mate" <${process.env.EMAIL_USER}>`,
+        //     to: member.email ?? "",
+        //     subject: 'ยินดีด้วย ! คุณสอบผ่านและได้ใบเซอร์แล้ว',
+        //     text: text,
+        //     attachments: [
+        //         {
+        //             filename: namePDF,
+        //             content: pdfBytes,
+        //             contentType: 'application/pdf',
         //         },
-        //         toRecipients: [
-        //             {
-        //                 emailAddress: {
-        //                     address: member.email ?? "",
-        //                 },
-        //             },
-        //         ],
-        //         attachments: [
-        //             {
-        //                 '@odata.type': '#microsoft.graph.fileAttachment',
-        //                 name: namePDF, // ใช้ชื่อไฟล์จากตัวแปรของคุณ
-        //                 contentType: 'application/pdf',
-        //                 contentBytes: base64Attachment, // ส่งไฟล์ในรูปแบบ Base64
-        //             },
-        //         ],
-        //     },
-        //     saveToSentItems: 'true', // เก็บอีเมลที่ส่งแล้วใน Sent Items
-        // };
-        // const senderEmail = process.env.GRAPH_SENDER_EMAIL; // อีเมลผู้ส่งที่ตั้งค่าใน .env
-        // await graphClient.api(`/users/${senderEmail}/sendMail`).post(mailPayload);
-        // console.log(`Email successfully sent to ${member.email} via Microsoft Graph.`)
+        //     ],
+        // })
         // บันทึก DB
         yield db_1.default.member.update({
             where: { idCard: useIdCard },
@@ -512,3 +467,23 @@ const memberUpdateDateOfTraining = (req, res) => __awaiter(void 0, void 0, void 
     }
 });
 exports.memberUpdateDateOfTraining = memberUpdateDateOfTraining;
+const test = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const emailHtml = `
+      <h1>สวัสดีคุณ xxxx!</h1>
+      <p>ยินดีต้อนรับสู่บริการของเรา</p>
+      <p>นี่คืออีเมลที่ส่งจากระบบอัตโนมัติโดยใช้ Microsoft Graph API ครับ</p>
+    `;
+        yield (0, mail_service_1.sendMail)({
+            to: "devsriwararak.work@gmail.com",
+            subject: `ยินดีต้อนรับคุณ xxx`,
+            htmlBody: emailHtml,
+        });
+        res.status(200).json({ message: 'บันทึกสำเร็จ' });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'An error occurred while sending the email.' });
+    }
+});
+exports.test = test;

@@ -4,6 +4,7 @@ import * as msal from '@azure/msal-node';
 import { Client, AuthenticationProvider } from '@microsoft/microsoft-graph-client';
 
 import { Message } from '@microsoft/microsoft-graph-types';
+import { FileAttachment } from 'microsoft-graph';
 dotenv.config()
 
 const { MAIL_TENANT_ID, MAIL_CLIENT_ID, MAIL_CLIENT_SECRET, MAIL_SENDER_ADDRESS } = process.env
@@ -23,28 +24,35 @@ const msalConfig: msal.Configuration = {
 const confidentialClientApplication = new msal.ConfidentialClientApplication(msalConfig)
 
 const authProvider: AuthenticationProvider = {
-  getAccessToken: async (): Promise<string> => {
-    const tokenRequest: msal.ClientCredentialRequest = {
-      scopes: ['https://graph.microsoft.com/.default'],
-    };
+    getAccessToken: async (): Promise<string> => {
+        const tokenRequest: msal.ClientCredentialRequest = {
+            scopes: ['https://graph.microsoft.com/.default'],
+        };
 
-    const response = await confidentialClientApplication.acquireTokenByClientCredential(tokenRequest);
+        const response = await confidentialClientApplication.acquireTokenByClientCredential(tokenRequest);
 
-    if (response && response.accessToken) {
-      return response.accessToken;
-    } else {
-      throw new Error('Authentication failed: No access token received.');
-    }
-  },
+        if (response && response.accessToken) {
+            return response.accessToken;
+        } else {
+            throw new Error('Authentication failed: No access token received.');
+        }
+    },
 };
 
 const graphClient = Client.initWithMiddleware({ authProvider })
+
+export interface MailAttachment {
+    filename: string;
+    content: Buffer;
+    contentType: string;
+}
 
 export interface SendMailOptions {
     to: string | string[]; // รองรับผู้รับคนเดียวหรือหลายคน
     subject: string;
     htmlBody: string;
     cc?: string | string[]; // Optional: สำหรับ CC
+    attachments?: MailAttachment[];
 }
 
 /**
@@ -53,7 +61,7 @@ export interface SendMailOptions {
  */
 
 export async function sendMail(options: SendMailOptions): Promise<void> {
-    const { to, subject, htmlBody, cc } = options;
+    const { to, subject, htmlBody, cc, attachments } = options;
 
     // แปลง array ของ string
     const toRecipients = (Array.isArray(to) ? to : [to]).map(addr => ({ emailAddress: { address: addr } }));
@@ -62,12 +70,27 @@ export async function sendMail(options: SendMailOptions): Promise<void> {
     const mailMessage: Message = {
         subject: subject,
         body: {
-            contentType: 'html', 
+            contentType: 'html',
             content: htmlBody,
         },
         toRecipients: toRecipients,
         ccRecipients: ccRecipients,
     };
+
+    // For PDF
+    if (attachments && attachments.length > 0) {
+        mailMessage.attachments = attachments.map(att => {
+            // แปลง Buffer เป็น Base64 string ซึ่งเป็น format ที่ Graph API ต้องการ
+            const contentBuffer = Buffer.from(att.content)        
+             const contentBytes = contentBuffer.toString('base64');
+            return {
+                '@odata.type': '#microsoft.graph.fileAttachment',
+                name: att.filename,
+                contentType: att.contentType,
+                contentBytes: contentBytes,
+            } as FileAttachment
+        })
+    }
     try {
         console.log(`Attempting to send email from ${MAIL_SENDER_ADDRESS}...`);
 
