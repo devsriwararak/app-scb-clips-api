@@ -238,7 +238,9 @@ const checkIdCard = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const data = {
             idCard: useIdCard,
             dateOfTraining: result.dateOfTraining,
-            location: result.location.name
+            location: result.location.name,
+            statusVideoEnd: result.statusVideoEnd,
+            statusQuestionEnd: result.statusQuestionEnd
         };
         return res.status(200).json(data);
     }
@@ -311,6 +313,7 @@ const certificatePDF = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.certificatePDF = certificatePDF;
 const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const { idCard } = req.body;
         if (!idCard)
@@ -351,7 +354,7 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
         ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
         โปรดดูใบรับรองของคุณที่แนบมา`;
         yield (0, mail_service_1.sendMail)({
-            to: "devsriwararak.work@gmail.com",
+            to: (_a = member.email) !== null && _a !== void 0 ? _a : "",
             subject: `ยินดีต้อนรับคุณ xxx`,
             htmlBody: text,
             attachments: [

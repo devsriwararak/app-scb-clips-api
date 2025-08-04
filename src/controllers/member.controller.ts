@@ -269,7 +269,9 @@ export const checkIdCard = async (req: Request, res: Response) => {
         const data = {
             idCard: useIdCard,
             dateOfTraining: result.dateOfTraining,
-            location: result.location.name
+            location: result.location.name , 
+            statusVideoEnd : result.statusVideoEnd , 
+            statusQuestionEnd : result.statusQuestionEnd
         }
 
         return res.status(200).json(data)
@@ -395,7 +397,7 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
         โปรดดูใบรับรองของคุณที่แนบมา`
 
         await sendMail({
-            to: "devsriwararak.work@gmail.com",
+            to: member.email ?? "",
             subject: `ยินดีต้อนรับคุณ xxx`,
             htmlBody: text,
             attachments: [
