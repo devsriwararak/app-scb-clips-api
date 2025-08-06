@@ -3,7 +3,7 @@ import express from 'express'
 import { asyncHandler } from '../utils/asyncHandler';
 import { authenticateToken } from '../middlewares/auth.middleware';
 import { isAdmin } from '../middlewares/admin.middleware';
-import { certificateEnd, certificatePDF, certificatePDFSend, checkIdCard, createMember, deleteMember, getImageMember, getMembers, memberUpdateDateOfTraining, test, updateMember, updateVerify } from '../controllers/member.controller';
+import { certificateEnd, certificatePDF, certificatePDFSend, checkIdCard, createMember, deleteMember, getImageMember, getMembers, memberUpdateDateOfTraining, updateMember, updateVerify } from '../controllers/member.controller';
 import multer from 'multer';
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
@@ -25,7 +25,6 @@ router.post('/certificate/end',asyncHandler(certificateEnd))
 // Users
 router.put('/user/update/:id', asyncHandler(memberUpdateDateOfTraining))
 
-router.post('/test',asyncHandler(test))
 
 
 

@@ -390,11 +390,31 @@ export const certificatePDFSend = async (req: Request, res: Response) => {
         const formattedDateCertificateDMY = moment(member.dateOfTraining).format('DD/MM') + '/' + (moment(member.dateOfTraining).year() + 543);
         const formattedDateCertificateEndDMY = moment(member.dateEndCertificate).format('DD/MM') + '/' + (moment(member.dateEndCertificate).year() + 543);
 
-        const text = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
-        รหัสบัตรประชาชน : ${member.idCard}
-        วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
-        ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
-        โปรดดูใบรับรองของคุณที่แนบมา`
+        // const text2 = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
+        // รหัสบัตรประชาชน : ${member.idCard}
+        // วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
+        // ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
+        // โปรดดูใบรับรองของคุณที่แนบมา`
+
+        const text = `
+        <h1>เรียน ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} </h1>
+        <p>คุณได้สอบผ่านการอบรมความปลอดภัยก่อนเข้างานของ</p>
+        <p>บริษัท ฟินิคซ พัลพ แอนด์ เพเพอร์ จำกัด(มหาชน)</p>
+    
+        <h2>ข้อมูลผู้เข้าอบรม</h2>
+        <ul>
+        <li> ชื่อ : ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} </li>
+        <li> บริษัท : ${member.company.name}</li>
+        <li>วันที่ผ่านการอบรมณ์ : ${formattedDateCertificateDMY}</li>
+        <li>วันที่หมดอายุ : ${formattedDateCertificateEndDMY}</li>
+        </ul>
+      
+        <p>หลักฐานผ่านการอบรม ดังเอกสารแนบ</p>
+       
+        <h3>ขอแสดงความนับถือ</h3>
+        <h3>PPPC OHS ADMIN</h3>
+
+        `
 
         await sendMail({
             to: member.email ?? "",
@@ -524,26 +544,3 @@ export const memberUpdateDateOfTraining = async (req: Request, res: Response) =>
 }
 
 
-export const test = async (req: Request, res: Response) => {
-    try {
-
-        const emailHtml = `
-      <h1>สวัสดีคุณ xxxx!</h1>
-      <p>ยินดีต้อนรับสู่บริการของเรา</p>
-      <p>นี่คืออีเมลที่ส่งจากระบบอัตโนมัติโดยใช้ Microsoft Graph API ครับ</p>
-    `;
-
-        await sendMail({
-            to: "devsriwararak.work@gmail.com",
-            subject: `ยินดีต้อนรับคุณ xxx`,
-            htmlBody: emailHtml,
-        });
-
-        res.status(200).json({ message: 'บันทึกสำเร็จ' })
-
-
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({ error: 'An error occurred while sending the email.' });
-    }
-}

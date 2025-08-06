@@ -23,5 +23,4 @@ router.post('/certificate/send', (0, asyncHandler_1.asyncHandler)(member_control
 router.post('/certificate/end', (0, asyncHandler_1.asyncHandler)(member_controller_1.certificateEnd));
 // Users
 router.put('/user/update/:id', (0, asyncHandler_1.asyncHandler)(member_controller_1.memberUpdateDateOfTraining));
-router.post('/test', (0, asyncHandler_1.asyncHandler)(member_controller_1.test));
 exports.default = router;

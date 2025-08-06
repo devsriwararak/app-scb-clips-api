@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.test = exports.memberUpdateDateOfTraining = exports.getImageMember = exports.certificateEnd = exports.certificatePDFSend = exports.certificatePDF = exports.updateVerify = exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
+exports.memberUpdateDateOfTraining = exports.getImageMember = exports.certificateEnd = exports.certificatePDFSend = exports.certificatePDF = exports.updateVerify = exports.checkIdCard = exports.deleteMember = exports.updateMember = exports.createMember = exports.getMembers = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const report_controller_1 = require("./report.controller");
 const tools_1 = require("../utils/tools");
@@ -348,11 +348,30 @@ const certificatePDFSend = (req, res) => __awaiter(void 0, void 0, void 0, funct
         const namePDF = `certificate_${idCard}.pdf`;
         const formattedDateCertificateDMY = (0, moment_1.default)(member.dateOfTraining).format('DD/MM') + '/' + ((0, moment_1.default)(member.dateOfTraining).year() + 543);
         const formattedDateCertificateEndDMY = (0, moment_1.default)(member.dateEndCertificate).format('DD/MM') + '/' + ((0, moment_1.default)(member.dateEndCertificate).year() + 543);
-        const text = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
-        รหัสบัตรประชาชน : ${member.idCard}
-        วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
-        ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
-        โปรดดูใบรับรองของคุณที่แนบมา`;
+        // const text2 = ` ถึง ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} 
+        // รหัสบัตรประชาชน : ${member.idCard}
+        // วันที่ได้ใบเซอร์ : ${formattedDateCertificateDMY}
+        // ใบเซอร์ หมดอายุ : ${formattedDateCertificateEndDMY} 
+        // โปรดดูใบรับรองของคุณที่แนบมา`
+        const text = `
+        <h1>เรียน ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} </h1>
+        <p>คุณได้สอบผ่านการอบรมความปลอดภัยก่อนเข้างานของ</p>
+        <p>บริษัท ฟินิคซ พัลพ แอนด์ เพเพอร์ จำกัด(มหาชน)</p>
+    
+        <h2>ข้อมูลผู้เข้าอบรม</h2>
+        <ul>
+        <li> ชื่อ : ${member.titleName}${" "} ${member.fname} ${" "} ${member.lname} </li>
+        <li> บริษัท : ${member.company.name}</li>
+        <li>วันที่ผ่านการอบรมณ์ : ${formattedDateCertificateDMY}</li>
+        <li>วันที่หมดอายุ : ${formattedDateCertificateEndDMY}</li>
+        </ul>
+      
+        <p>หลักฐานผ่านการอบรม ดังเอกสารแนบ</p>
+       
+        <h3>ขอแสดงความนับถือ</h3>
+        <h3>PPPC OHS ADMIN</h3>
+
+        `;
         yield (0, mail_service_1.sendMail)({
             to: (_a = member.email) !== null && _a !== void 0 ? _a : "",
             subject: `ยินดีต้อนรับคุณ xxx`,
@@ -470,23 +489,3 @@ const memberUpdateDateOfTraining = (req, res) => __awaiter(void 0, void 0, void 
     }
 });
 exports.memberUpdateDateOfTraining = memberUpdateDateOfTraining;
-const test = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const emailHtml = `
-      <h1>สวัสดีคุณ xxxx!</h1>
-      <p>ยินดีต้อนรับสู่บริการของเรา</p>
-      <p>นี่คืออีเมลที่ส่งจากระบบอัตโนมัติโดยใช้ Microsoft Graph API ครับ</p>
-    `;
-        yield (0, mail_service_1.sendMail)({
-            to: "devsriwararak.work@gmail.com",
-            subject: `ยินดีต้อนรับคุณ xxx`,
-            htmlBody: emailHtml,
-        });
-        res.status(200).json({ message: 'บันทึกสำเร็จ' });
-    }
-    catch (error) {
-        console.log(error);
-        return res.status(500).json({ error: 'An error occurred while sending the email.' });
-    }
-});
-exports.test = test;
