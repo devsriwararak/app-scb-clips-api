@@ -64,19 +64,16 @@ export const uploadVideo = async (req: Request, res: Response) => {
 
         console.log(req.body);
 
-
-        // ทำไมเข้าเงื่อนไขนี้ แต่รูปยังถูกส่งไป FTP อยู่เลย
-        if (!file || !name?.trim()) {
-            if (file) fs.unlinkSync(file.path);
-            return res.status(400).json({ error: "No file uploaded or name missing" });
-        }
+        // if (!file || !name?.trim()) {
+        //     if (file) fs.unlinkSync(file.path);
+        //     return res.status(400).json({ error: "No file uploaded or name missing" });
+        // }
 
         //Check ซ้ำ
         const checkSql = await prisma.video.findFirst({
             where: {
                 name: {
                     equals: name,
-                    // mode: "insensitive"
                 }
             }
         })
@@ -84,34 +81,49 @@ export const uploadVideo = async (req: Request, res: Response) => {
         if (checkSql) return res.status(400).json({ message: "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่" })
 
 
-        const filePath = file.path;
-        const originalName = file.originalname;
-        const safeName = sanitizeFilename(originalName)
-        const remotePath = `/videos/${Date.now()}_${safeName}`;
+        // const filePath = file.path;
+        // const originalName = file.originalname;
+        // const safeName = sanitizeFilename(originalName)
+        // const remotePath = `/videos/${Date.now()}_${safeName}`;
 
-        const client = await createFtpClient();
-        await client.uploadFrom(filePath, remotePath);
-        await client.close();
+        // const client = await createFtpClient();
+        // await client.uploadFrom(filePath, remotePath);
+        // await client.close();
 
-        fs.unlinkSync(filePath);
+        // fs.unlinkSync(filePath);
 
-        try {
-            const video = await prisma.video.create({
-                data: {
-                    name: name,
-                    filePath: remotePath,
-                    detail: detail || "",
-                    timeAdvert: Number(timeAdvert) || 0
-                },
-            });
-            return res.json({ success: true, video });
-        } catch (dbError) {
-            const rollbackClient = await createFtpClient();
-            await rollbackClient.remove(remotePath);
-            await rollbackClient.close();
+        // try {
+        //     const video = await prisma.video.create({
+        //         data: {
+        //             name: name,
+        //             filePath: remotePath,
+        //             detail: detail || "",
+        //             timeAdvert: Number(timeAdvert) || 0
+        //         },
+        //     });
+        //     return res.json({ success: true, video });
+        // } catch (dbError) {
+        //     const rollbackClient = await createFtpClient();
+        //     await rollbackClient.remove(remotePath);
+        //     await rollbackClient.close();
 
-            return res.status(409).json({ error: "Video name already exists or DB error." });
-        }
+        //     return res.status(409).json({ error: "Video name already exists or DB error." });
+        // }
+
+        const filePath = `/uploads/${file?.filename}`
+        const video = await prisma.video.create({
+            data: {
+                name: name,
+                filePath: filePath,
+                detail: detail || "",
+                timeAdvert: Number(timeAdvert) || 0
+            },
+        });
+
+        return res.status(200).json({
+            success: true,
+            video,
+        })
 
     } catch (error) {
         console.log(error);
@@ -134,16 +146,25 @@ export const updateVideo = async (req: Request, res: Response) => {
         if (file) {
             const filePath = file.path;
             const originalName = file.originalname;
-            newFilePath = `/videos/${Date.now()}_${originalName}`;
+            //newFilePath = `/videos/${Date.now()}_${originalName}`;
+            newFilePath = `/uploads/${file.filename}`;
 
-            const client = await createFtpClient();
-            // ลบไฟล์เก่าออกจาก FTP
-            await client.remove(existing.filePath);
-            // อัปโหลดไฟล์ใหม่
-            await client.uploadFrom(filePath, newFilePath);
-            await client.close();
+            // const client = await createFtpClient();
+            // // ลบไฟล์เก่าออกจาก FTP
+            // await client.remove(existing.filePath);
+            // // อัปโหลดไฟล์ใหม่
+            // await client.uploadFrom(filePath, newFilePath);
+            // await client.close();
+            // fs.unlinkSync(filePath); // ลบ tmp
 
-            fs.unlinkSync(filePath); // ลบ tmp
+            const filePathDelete = path.join("D:/", existing.filePath)
+            fs.unlink(filePathDelete, (err) => {
+                if (err) {
+                    console.error("Error deleting file:", err);
+                    return;
+                }
+                console.log("File deleted successfully");
+            });
         }
 
         const updated = await prisma.video.update({
@@ -174,13 +195,22 @@ export const deleteVideo = async (req: Request, res: Response) => {
         if (!video) return res.status(404).json({ error: "ไม่พบวีดีโอ ไม่สามารถลบได้" });
 
         // ลบไฟล์จาก FTP
-        try {
-            const client = await createFtpClient();
-            await client.remove(video.filePath);
-            await client.close();
-        } catch (ftpError) {
-            console.warn(" ไม่สามารถลบไฟล์ FTP (อาจไม่มีอยู่):", ftpError);
-        }
+        // try {
+        //     const client = await createFtpClient();
+        //     await client.remove(video.filePath);
+        //     await client.close();
+        // } catch (ftpError) {
+        //     console.warn(" ไม่สามารถลบไฟล์ FTP (อาจไม่มีอยู่):", ftpError);
+        // }
+
+        const filePathDelete = path.join("D:/", video.filePath)
+        fs.unlink(filePathDelete, (err) => {
+            if (err) {
+                console.error("Error deleting file:", err);
+                return;
+            }
+            console.log("File deleted successfully");
+        });
 
         // ลบข้อมูลจาก DB
         await prisma.video.delete({ where: { id: Number(id) } });
@@ -199,7 +229,7 @@ export const getSecureVideos = async (req: Request, res: Response) => {
         const idCard = req.body.idCard as string;
         const idCardLength = idCard.length
         let useIdCard = idCard
-     
+
         // if (!idCard || (idCard.length !== 13 && idCard.length !== 8)) {
         //     return res.status(400).json({ message: "กรุณาระบุเลขบัตรประชาชน" })
         // }
@@ -209,7 +239,7 @@ export const getSecureVideos = async (req: Request, res: Response) => {
         if (idCardLength > 13) {
             const decipher = await decrypt(idCard)
             useIdCard = decipher
-        } else if(idCardLength <= 13 || idCardLength <= 9){
+        } else if (idCardLength <= 13 || idCardLength <= 9) {
             const decipher = await encrypt(idCard)
             useIdCard = decipher
         }
@@ -228,7 +258,8 @@ export const getSecureVideos = async (req: Request, res: Response) => {
                 const token = await generateSecureToken(useIdCard, video.filePath)
                 return {
                     name: video.name,
-                    filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${useIdCard}`,
+                    // filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${useIdCard}`,
+                    filePath: video.filePath,
                     detail: video.detail,
                     timeAdvert: video.timeAdvert,
                 }

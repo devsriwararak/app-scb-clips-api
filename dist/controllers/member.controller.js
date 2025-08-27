@@ -19,8 +19,10 @@ const tools_1 = require("../utils/tools");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const date_fns_1 = require("date-fns");
 const moment_1 = __importDefault(require("moment"));
+const fs_1 = __importDefault(require("fs"));
 const ftpClient_1 = require("../config/ftpClient");
 const mail_service_1 = require("../utils/mail.service");
+const path_1 = __importDefault(require("path"));
 require('isomorphic-fetch');
 const getMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -92,7 +94,8 @@ const createMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         });
         if (resultCheck)
             return res.status(400).json({ message: "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่" });
-        const imageUrl = yield (0, tools_1.uploadFileToFtp)(imageFile);
+        //const imageUrl = await uploadFileToFtp(imageFile);
+        const imageUrl = `/uploads/${imageFile === null || imageFile === void 0 ? void 0 : imageFile.filename}`;
         const result = yield db_1.default.member.create({
             data: {
                 titleName,
@@ -154,7 +157,16 @@ const updateMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const oldImage = String(searchOldImage === null || searchOldImage === void 0 ? void 0 : searchOldImage.image);
         if (imageFile) {
             // await deleteImageFtp(String(oldImage))
-            newInmagePath = yield (0, tools_1.uploadFileToFtp)(imageFile, oldImage);
+            const filePathDelete = path_1.default.join("D:/", oldImage);
+            fs_1.default.unlink(filePathDelete, (err) => {
+                if (err) {
+                    console.error("Error deleting file:", err);
+                    return;
+                }
+                console.log("File deleted successfully");
+            });
+            // newInmagePath = await uploadFileToFtp(imageFile, oldImage)
+            newInmagePath = `/uploads/${imageFile === null || imageFile === void 0 ? void 0 : imageFile.filename}`;
         }
         const data = {
             titleName,
@@ -193,8 +205,18 @@ const deleteMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             select: { image: true }
         });
         const image = result === null || result === void 0 ? void 0 : result.image;
-        if (image)
-            yield (0, tools_1.deleteImageFtp)(image);
+        //if (image) await deleteImageFtp(image)
+        if (image) {
+            const filePathDelete = path_1.default.join("D:", image);
+            fs_1.default.unlink(filePathDelete, (err) => {
+                if (err) {
+                    console.error("Error deleting file:", err);
+                    return;
+                }
+                console.log("File deleted successfully");
+            });
+        }
+        yield db_1.default.memberChangeCompany.deleteMany({ where: { memberId: id } });
         yield db_1.default.member.delete({ where: { id } });
         return res.status(200).json({ message: "ทำรายการสำเร็จ" });
     }

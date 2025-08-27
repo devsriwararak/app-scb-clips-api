@@ -8,11 +8,13 @@ const multer_1 = __importDefault(require("multer"));
 const asyncHandler_1 = require("../utils/asyncHandler");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const vdo_controller_1 = require("../controllers/vdo.controller");
+const upload_middleware_1 = require("../middlewares/upload.middleware");
 const router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({ dest: "tmp/" });
 router.get('/all', (0, asyncHandler_1.asyncHandler)(vdo_controller_1.getAllVideos));
-router.post("/upload", auth_middleware_1.authenticateToken, upload.single("video"), (0, asyncHandler_1.asyncHandler)(vdo_controller_1.uploadVideo));
-router.put("/upload/:id", auth_middleware_1.authenticateToken, upload.single("video"), (0, asyncHandler_1.asyncHandler)(vdo_controller_1.updateVideo));
+//router.post("/upload",authenticateToken, upload.single("video"), asyncHandler(uploadVideo));
+router.post("/upload", auth_middleware_1.authenticateToken, upload_middleware_1.uploadServer.single('video'), (0, asyncHandler_1.asyncHandler)(vdo_controller_1.uploadVideo));
+router.put("/upload/:id", auth_middleware_1.authenticateToken, upload_middleware_1.uploadServer.single("video"), (0, asyncHandler_1.asyncHandler)(vdo_controller_1.updateVideo));
 router.delete("/:id", auth_middleware_1.authenticateToken, (0, asyncHandler_1.asyncHandler)(vdo_controller_1.deleteVideo));
 // User
 router.post('/secure/checkIdCard', (0, asyncHandler_1.asyncHandler)(vdo_controller_1.getSecureVideos));

@@ -141,17 +141,18 @@ function generatePdf(member) {
                     formattedDateCertificateEndDMY })
             });
             // สั่ง Puppeteer เปิดหน้า HTML นี้
-            let browser = null;
-            if (NODE_ENV === 'development') {
-                browser = yield puppeteer_1.default.launch();
-            }
-            else if (NODE_ENV === "production") {
-                browser = yield puppeteer_1.default.launch({
-                    executablePath: '/usr/bin/chromium-browser', // หรือ path ที่ติดตั้งจริง ๆ
-                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-                    headless: true,
-                });
-            }
+            // let browser = null
+            // if (NODE_ENV === 'development') {
+            //     browser = await puppeteer.launch();
+            // }
+            // else if (NODE_ENV === "production") {
+            //     browser = await puppeteer.launch({
+            //         executablePath: '/usr/bin/chromium-browser',  // หรือ path ที่ติดตั้งจริง ๆ
+            //         args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            //         headless: true,
+            //     });
+            // }
+            const browser = yield puppeteer_1.default.launch();
             if (!browser) {
                 throw new Error("Puppeteer browser is not initialized. Check NODE_ENV value.");
             }
