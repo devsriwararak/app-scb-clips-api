@@ -1,0 +1,30 @@
+module.exports = {
+    apps: [
+        {
+            name: 'app-scgp-api',
+            script: './dist/server.js',
+            instances: 1,
+             exec_mode: 'cluster',
+            autorestart: true,
+            watch: false,
+            max_memory_restart: '500M',
+            env: {
+            NODE_ENV: 'production',
+            PORT: 5001,
+           DATABASE_URL : process.env.DATABASE_URL ,
+           ENCRYPT_SECRET_KEY : process.env.ENCRYPT_SECRET_KEY ,
+           ACCESS_TOKEN_SECRET : process.env.ACCESS_TOKEN_SECRET,
+           REFRESH_TOKEN_SECRET : process.env.REFRESH_TOKEN_SECRET,
+           STREAM_SECRET : process.env.STREAM_SECRET,
+           MAIL_TENANT_ID : process.env.MAIL_TENANT_ID,
+           MAIL_CLIENT_ID : process.env.MAIL_CLIENT_ID,
+           MAIL_CLIENT_SECRET : process.env.MAIL_CLIENT_SECRET,
+           MAIL_SENDER_ADDRESS : process.env.MAIL_SENDER_ADDRESS,
+           AZURE_AD_TENANT_ID : process.env.AZURE_AD_TENANT_ID,
+           AZURE_AD_CLIENT_ID : process.env.AZURE_AD_CLIENT_ID,
+           AZURE_AD_CLIENT_SECRET : process.env.AZURE_AD_CLIENT_SECRET,
+           AZURE_API_AUDIENCE : process.env.AZURE_API_AUDIENCE,
+            },
+        },
+    ],
+};

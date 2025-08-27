@@ -65,48 +65,57 @@ const uploadVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const file = req.file;
         const { detail, name, timeAdvert } = req.body;
         console.log(req.body);
-        // ทำไมเข้าเงื่อนไขนี้ แต่รูปยังถูกส่งไป FTP อยู่เลย
-        if (!file || !(name === null || name === void 0 ? void 0 : name.trim())) {
-            if (file)
-                fs_1.default.unlinkSync(file.path);
-            return res.status(400).json({ error: "No file uploaded or name missing" });
-        }
+        // if (!file || !name?.trim()) {
+        //     if (file) fs.unlinkSync(file.path);
+        //     return res.status(400).json({ error: "No file uploaded or name missing" });
+        // }
         //Check ซ้ำ
         const checkSql = yield db_1.default.video.findFirst({
             where: {
                 name: {
                     equals: name,
-                    // mode: "insensitive"
                 }
             }
         });
         if (checkSql)
             return res.status(400).json({ message: "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่" });
-        const filePath = file.path;
-        const originalName = file.originalname;
-        const safeName = (0, tools_1.sanitizeFilename)(originalName);
-        const remotePath = `/videos/${Date.now()}_${safeName}`;
-        const client = yield (0, ftpClient_1.createFtpClient)();
-        yield client.uploadFrom(filePath, remotePath);
-        yield client.close();
-        fs_1.default.unlinkSync(filePath);
-        try {
-            const video = yield db_1.default.video.create({
-                data: {
-                    name: name,
-                    filePath: remotePath,
-                    detail: detail || "",
-                    timeAdvert: Number(timeAdvert) || 0
-                },
-            });
-            return res.json({ success: true, video });
-        }
-        catch (dbError) {
-            const rollbackClient = yield (0, ftpClient_1.createFtpClient)();
-            yield rollbackClient.remove(remotePath);
-            yield rollbackClient.close();
-            return res.status(409).json({ error: "Video name already exists or DB error." });
-        }
+        // const filePath = file.path;
+        // const originalName = file.originalname;
+        // const safeName = sanitizeFilename(originalName)
+        // const remotePath = `/videos/${Date.now()}_${safeName}`;
+        // const client = await createFtpClient();
+        // await client.uploadFrom(filePath, remotePath);
+        // await client.close();
+        // fs.unlinkSync(filePath);
+        // try {
+        //     const video = await prisma.video.create({
+        //         data: {
+        //             name: name,
+        //             filePath: remotePath,
+        //             detail: detail || "",
+        //             timeAdvert: Number(timeAdvert) || 0
+        //         },
+        //     });
+        //     return res.json({ success: true, video });
+        // } catch (dbError) {
+        //     const rollbackClient = await createFtpClient();
+        //     await rollbackClient.remove(remotePath);
+        //     await rollbackClient.close();
+        //     return res.status(409).json({ error: "Video name already exists or DB error." });
+        // }
+        const filePath = `/uploads/${file === null || file === void 0 ? void 0 : file.filename}`;
+        const video = yield db_1.default.video.create({
+            data: {
+                name: name,
+                filePath: filePath,
+                detail: detail || "",
+                timeAdvert: Number(timeAdvert) || 0
+            },
+        });
+        return res.status(200).json({
+            success: true,
+            video,
+        });
     }
     catch (error) {
         console.log(error);
@@ -126,14 +135,23 @@ const updateVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (file) {
             const filePath = file.path;
             const originalName = file.originalname;
-            newFilePath = `/videos/${Date.now()}_${originalName}`;
-            const client = yield (0, ftpClient_1.createFtpClient)();
-            // ลบไฟล์เก่าออกจาก FTP
-            yield client.remove(existing.filePath);
-            // อัปโหลดไฟล์ใหม่
-            yield client.uploadFrom(filePath, newFilePath);
-            yield client.close();
-            fs_1.default.unlinkSync(filePath); // ลบ tmp
+            //newFilePath = `/videos/${Date.now()}_${originalName}`;
+            newFilePath = `/uploads/${file.filename}`;
+            // const client = await createFtpClient();
+            // // ลบไฟล์เก่าออกจาก FTP
+            // await client.remove(existing.filePath);
+            // // อัปโหลดไฟล์ใหม่
+            // await client.uploadFrom(filePath, newFilePath);
+            // await client.close();
+            // fs.unlinkSync(filePath); // ลบ tmp
+            const filePathDelete = path_1.default.join("D:/", existing.filePath);
+            fs_1.default.unlink(filePathDelete, (err) => {
+                if (err) {
+                    console.error("Error deleting file:", err);
+                    return;
+                }
+                console.log("File deleted successfully");
+            });
         }
         const updated = yield db_1.default.video.update({
             where: { id: Number(id) },
@@ -159,14 +177,21 @@ const deleteVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (!video)
             return res.status(404).json({ error: "ไม่พบวีดีโอ ไม่สามารถลบได้" });
         // ลบไฟล์จาก FTP
-        try {
-            const client = yield (0, ftpClient_1.createFtpClient)();
-            yield client.remove(video.filePath);
-            yield client.close();
-        }
-        catch (ftpError) {
-            console.warn(" ไม่สามารถลบไฟล์ FTP (อาจไม่มีอยู่):", ftpError);
-        }
+        // try {
+        //     const client = await createFtpClient();
+        //     await client.remove(video.filePath);
+        //     await client.close();
+        // } catch (ftpError) {
+        //     console.warn(" ไม่สามารถลบไฟล์ FTP (อาจไม่มีอยู่):", ftpError);
+        // }
+        const filePathDelete = path_1.default.join("D:/", video.filePath);
+        fs_1.default.unlink(filePathDelete, (err) => {
+            if (err) {
+                console.error("Error deleting file:", err);
+                return;
+            }
+            console.log("File deleted successfully");
+        });
         // ลบข้อมูลจาก DB
         yield db_1.default.video.delete({ where: { id: Number(id) } });
         return res.status(200).json({ success: true, message: "Video deleted" });
@@ -208,7 +233,8 @@ const getSecureVideos = (req, res) => __awaiter(void 0, void 0, void 0, function
             const token = yield (0, tools_1.generateSecureToken)(useIdCard, video.filePath);
             return {
                 name: video.name,
-                filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${useIdCard}`,
+                // filePath: `/api/vdo/stream?file=${encodeURIComponent(video.filePath)}&token=${token}&idCard=${useIdCard}`,
+                filePath: video.filePath,
                 detail: video.detail,
                 timeAdvert: video.timeAdvert,
             };

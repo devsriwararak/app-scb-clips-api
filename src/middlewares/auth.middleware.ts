@@ -68,14 +68,7 @@ export const authenticateToken = jwt({
     jwksUri: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/discovery/v2.0/keys`
   }),
 
-  // ระบุ Audience ที่คาดหวัง (Token นี้ต้องออกให้สำหรับ API ของเรา)
-  // ใช้ค่าจาก App ID URI ที่เราตั้งค่าไว้ และเพิ่ม Client ID เป็นอีกหนึ่งตัวเลือก
   audience: [apiAudience, process.env.AZURE_AD_CLIENT_ID!],
-  
-  // ระบุ Issuer ที่คาดหวัง (Token นี้ต้องออกโดย Azure AD tenant ของเรา)
-  // FIX: เปลี่ยนไปใช้ Array ของ Issuer ที่ถูกต้อง
-  issuer: validIssuers,
-  
-  // ระบุ Algorithm ที่ใช้
+  issuer: validIssuers as [string, ...string[]],
   algorithms: ['RS256']
 });

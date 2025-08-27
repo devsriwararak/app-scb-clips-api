@@ -8,6 +8,7 @@ import nodemailer from 'nodemailer'
 import { addYears } from 'date-fns'
 import moment from "moment";
 import jwt from "jsonwebtoken"
+import fs from "fs";
 
 // mail Microsoft Graph
 import { ConfidentialClientApplication } from '@azure/msal-node'
@@ -15,6 +16,7 @@ import { Client } from '@microsoft/microsoft-graph-client'
 import { createFtpClient } from "../config/ftpClient";
 import { Readable } from "stream";
 import { sendMail } from "../utils/mail.service";
+import path from "path";
 require('isomorphic-fetch');
 
 
@@ -108,7 +110,8 @@ export const createMember = async (req: Request, res: Response) => {
 
         if (resultCheck) return res.status(400).json({ message: "มีข้อมูลนี้แล้วในระบบ กรุณาเพิ่มชื่อใหม่" })
 
-        const imageUrl = await uploadFileToFtp(imageFile);
+        //const imageUrl = await uploadFileToFtp(imageFile);
+        const imageUrl = `/uploads/${imageFile?.filename}`
 
         const result = await prisma.member.create({
             data: {
@@ -176,8 +179,16 @@ export const updateMember = async (req: Request, res: Response) => {
 
         if (imageFile) {
             // await deleteImageFtp(String(oldImage))
-            newInmagePath = await uploadFileToFtp(imageFile, oldImage)
-
+            const filePathDelete = path.join("D:/", oldImage)
+            fs.unlink(filePathDelete, (err) => {
+                if (err) {
+                    console.error("Error deleting file:", err);
+                    return;
+                }
+                console.log("File deleted successfully");
+            });
+            // newInmagePath = await uploadFileToFtp(imageFile, oldImage)
+            newInmagePath = `/uploads/${imageFile?.filename}`
 
         }
 
@@ -220,7 +231,18 @@ export const deleteMember = async (req: Request, res: Response) => {
             select: { image: true }
         })
         const image = result?.image
-        if (image) await deleteImageFtp(image)
+        //if (image) await deleteImageFtp(image)
+        if(image){
+                const filePathDelete = path.join("D:", image)
+            fs.unlink(filePathDelete, (err) => {
+                if (err) {
+                    console.error("Error deleting file:", err);
+                    return;
+                }
+                console.log("File deleted successfully");
+            });
+        }
+         await prisma.memberChangeCompany.deleteMany({ where: { memberId:id } })
 
         await prisma.member.delete({ where: { id } })
         return res.status(200).json({ message: "ทำรายการสำเร็จ" })
@@ -269,9 +291,9 @@ export const checkIdCard = async (req: Request, res: Response) => {
         const data = {
             idCard: useIdCard,
             dateOfTraining: result.dateOfTraining,
-            location: result.location.name , 
-            statusVideoEnd : result.statusVideoEnd , 
-            statusQuestionEnd : result.statusQuestionEnd
+            location: result.location.name,
+            statusVideoEnd: result.statusVideoEnd,
+            statusQuestionEnd: result.statusQuestionEnd
         }
 
         return res.status(200).json(data)

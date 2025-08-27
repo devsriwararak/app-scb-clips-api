@@ -20,13 +20,19 @@ dotenv.config()
 const app = express()
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.1.107:3000','https://app-scgp.thaibusinessmate.com'],
+    origin: ['http://localhost:3000', 'http://192.168.1.107:3000', 'http://localhost:3001'],
     credentials: true
 }))
 app.use(express.json())
 app.use(cookieParser());
 
 // test
+
+app.get('/', (req,res)=> {
+    res.send('server runing')
+})
+
+
 
 app.use('/api/users', userRoutes)
 app.use('/api/auth', authRoutes)

@@ -7,5 +7,5 @@ const app_1 = __importDefault(require("./app"));
 require("./utils/cleanupVideoTokens");
 const PORT = process.env.PORT || 5001;
 app_1.default.listen(PORT, () => {
-    console.log(`SERVER is PORT : ${PORT}`);
+    console.log(`SERVER is PORT : ${PORT} ENV : ${process.env.NODE_ENV}`);
 });
